@@ -1,4 +1,4 @@
-import { MODULE_ID } from "./settings.js";
+import { MODULE_ID } from "./constants.js";
 import { getActorViewData } from "./data.js";
 
 const FADE_MS = 250;

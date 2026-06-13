@@ -1,4 +1,5 @@
-import { registerSettings, MODULE_ID } from "./settings.js";
+import { MODULE_ID } from "./constants.js";
+import { registerSettings } from "./settings.js";
 import { OverlayController } from "./overlay.js";
 
 Hooks.once("init", () => {
