@@ -44,6 +44,29 @@
   width: 70px;
 }
 
+.pcs-config table.pcs-fields th.pcs-handle-col {
+  width: 28px;
+}
+
+.pcs-config .pcs-field-row {
+  background: transparent;
+}
+
+.pcs-config .pcs-field-row.dragging {
+  opacity: 0.4;
+}
+
+.pcs-config .pcs-drag-handle {
+  cursor: grab;
+  text-align: center;
+  color: var(--color-text-dark-secondary, #999);
+  user-select: none;
+}
+
+.pcs-config .pcs-field-row:active .pcs-drag-handle {
+  cursor: grabbing;
+}
+
 .pcs-config .pcs-general .form-group {
   display: flex;
   align-items: center;

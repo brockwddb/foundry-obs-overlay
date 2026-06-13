@@ -7,6 +7,8 @@
   "PCSTATS.SelectCharactersHint": "Select which characters appear in the carousel.",
   "PCSTATS.NoCharacterActors": "No character-type actors found in this world.",
   "PCSTATS.Fields": "Display Fields",
+  "PCSTATS.FieldsHint": "Drag rows by the handle to set the display order.",
+  "PCSTATS.DragToReorder": "Drag to reorder",
   "PCSTATS.Field": "Field",
   "PCSTATS.Enabled": "Show",
   "PCSTATS.FontSize": "Font Size (px)",

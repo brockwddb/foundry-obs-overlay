@@ -32,10 +32,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     const saved = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
     const byKey = Object.fromEntries(saved.map(f => [f.key, f]));
-    const fields = Object.entries(FIELD_DEFS).map(([key, label], i) => {
-      const f = byKey[key] ?? { enabled: true, fontSize: 18, order: i };
-      return { key, label, enabled: f.enabled, fontSize: f.fontSize, order: f.order };
-    });
+    const fields = Object.entries(FIELD_DEFS)
+      .map(([key, label], i) => {
+        const f = byKey[key] ?? { enabled: true, fontSize: 18, order: i };
+        return { key, label, enabled: f.enabled, fontSize: f.fontSize, order: f.order };
+      })
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     return {
       actors,
@@ -70,5 +72,50 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     await game.settings.set(MODULE_ID, "bannerHeight", Number(data.bannerHeight) || 220);
 
     game.modules.get(MODULE_ID).api?.controller?.reload();
+  }
+
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    const tbody = this.element.querySelector(".pcs-field-rows");
+    if (!tbody) return;
+
+    let dragRow = null;
+
+    for (const row of tbody.querySelectorAll(".pcs-field-row")) {
+      row.addEventListener("dragstart", (ev) => {
+        dragRow = row;
+        row.classList.add("dragging");
+        ev.dataTransfer.effectAllowed = "move";
+        ev.dataTransfer.setData("text/plain", row.dataset.key ?? "");
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        dragRow = null;
+        this.#renumber(tbody);
+      });
+    }
+
+    tbody.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      if (!dragRow) return;
+      const after = this.#rowAfter(tbody, ev.clientY);
+      if (after === null) tbody.appendChild(dragRow);
+      else tbody.insertBefore(dragRow, after);
+    });
+  }
+
+  #rowAfter(tbody, y) {
+    const rows = [...tbody.querySelectorAll(".pcs-field-row:not(.dragging)")];
+    return rows.find(row => {
+      const box = row.getBoundingClientRect();
+      return y < box.top + box.height / 2;
+    }) ?? null;
+  }
+
+  #renumber(tbody) {
+    [...tbody.querySelectorAll(".pcs-field-row")].forEach((row, i) => {
+      const input = row.querySelector(".pcs-order-input");
+      if (input) input.value = String(i);
+    });
   }
 }

@@ -17,22 +17,26 @@
 
   <section>
     <h3>{{localize "PCSTATS.Fields"}}</h3>
+    <p class="notes">{{localize "PCSTATS.FieldsHint"}}</p>
     <table class="pcs-fields">
       <thead>
         <tr>
+          <th class="pcs-handle-col"></th>
           <th>{{localize "PCSTATS.Field"}}</th>
           <th>{{localize "PCSTATS.Enabled"}}</th>
           <th>{{localize "PCSTATS.FontSize"}}</th>
-          <th>{{localize "PCSTATS.Order"}}</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="pcs-field-rows">
         {{#each fields}}
-          <tr>
+          <tr class="pcs-field-row" draggable="true" data-key="{{this.key}}">
+            <td class="pcs-drag-handle" title="{{localize "PCSTATS.DragToReorder"}}">
+              <i class="fa-solid fa-grip-vertical"></i>
+              <input type="hidden" name="field.{{this.key}}.order" value="{{this.order}}" class="pcs-order-input">
+            </td>
             <td>{{localize this.label}}</td>
             <td><input type="checkbox" name="field.{{this.key}}.enabled" {{checked this.enabled}}></td>
             <td><input type="number" name="field.{{this.key}}.fontSize" value="{{this.fontSize}}" min="6" max="120" step="1"></td>
-            <td><input type="number" name="field.{{this.key}}.order" value="{{this.order}}" min="0" max="20" step="1"></td>
           </tr>
         {{/each}}
       </tbody>
