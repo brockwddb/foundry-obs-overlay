@@ -71,7 +71,16 @@ function esc(str) {
   }[c]));
 }
 
-function renderField(key, view, fontSize) {
+function hexToRgba(hex, alpha) {
+  const h = String(hex ?? "").replace("#", "");
+  const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  if (Number.isNaN(n)) return `rgba(0,0,0,${Math.clamp(Number(alpha) || 0, 0, 1)})`;
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r},${g},${b},${Math.clamp(Number(alpha) ?? 1, 0, 1)})`;
+}
+
+function renderField(key, view, fontSize, opts) {
   const fs = `style="font-size:${Number(fontSize) || 18}px"`;
   switch (key) {
     case "portrait":
@@ -81,9 +90,10 @@ function renderField(key, view, fontSize) {
     case "hp": {
       if (view.hp.value === null && view.hp.max === null) return "";
       const temp = view.hp.temp ? ` (+${esc(view.hp.temp)})` : "";
-      return `<div class="pcs-field" ${fs}>HP ${esc(view.hp.value)}/${esc(view.hp.max)}${temp}
-        <div class="pcs-hpbar"><span style="transform:scaleX(${(view.hp.pct / 100).toFixed(3)})"></span></div>
-      </div>`;
+      const bar = opts.showHpBar
+        ? `<div class="pcs-hpbar"><span style="transform:scaleX(${(view.hp.pct / 100).toFixed(3)})"></span></div>`
+        : "";
+      return `<div class="pcs-field" ${fs}>HP ${esc(view.hp.value)}/${esc(view.hp.max)}${temp}${bar}</div>`;
     }
     case "ac":
       return view.ac === null ? "" : `<div class="pcs-field" ${fs}>AC ${esc(view.ac)}</div>`;
@@ -108,11 +118,11 @@ function renderField(key, view, fontSize) {
   }
 }
 
-function buildCardHTML(view, fieldConfig) {
+function buildCardHTML(view, fieldConfig, opts) {
   const ordered = [...fieldConfig]
     .filter(f => f.enabled)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  return ordered.map(f => renderField(f.key, view, f.fontSize)).join("");
+  return ordered.map(f => renderField(f.key, view, f.fontSize, opts)).join("");
 }
 
 export class OverlayController {
@@ -157,12 +167,22 @@ export class OverlayController {
 
   _writeSkeleton() {
     const bg = game.settings.get(MODULE_ID, "bgColor") ?? "#00ff00";
+    const textColor = game.settings.get(MODULE_ID, "textColor") ?? "#ffffff";
+    const cardEnabled = game.settings.get(MODULE_ID, "cardEnabled") ?? false;
+    const cardColor = game.settings.get(MODULE_ID, "cardColor") ?? "#000000";
+    const cardOpacity = game.settings.get(MODULE_ID, "cardOpacity") ?? 0.6;
+    const cardRadius = game.settings.get(MODULE_ID, "cardRadius") ?? 16;
+
+    const cardStyle = cardEnabled
+      ? `background:${hexToRgba(cardColor, cardOpacity)};border-radius:${Number(cardRadius) || 0}px;`
+      : "";
+
     const doc = this.popup.document;
     doc.open();
     doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>PC Stats Overlay</title><style>${OVERLAY_CSS}</style></head>
-      <body style="background:${esc(bg)}">
-        <div id="pcs-root"><div id="pcs-card"></div></div>
+      <body style="background:${esc(bg)};color:${esc(textColor)}">
+        <div id="pcs-root"><div id="pcs-card" style="${cardStyle}"></div></div>
       </body></html>`);
     doc.close();
   }
@@ -181,7 +201,8 @@ export class OverlayController {
     if (this.index >= actors.length) this.index = 0;
     const view = getActorViewData(actors[this.index]);
     const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
-    const html = buildCardHTML(view, fieldConfig);
+    const opts = { showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true };
+    const html = buildCardHTML(view, fieldConfig, opts);
 
     card.style.opacity = "0";
     this.popup.setTimeout(() => {

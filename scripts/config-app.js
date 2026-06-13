@@ -45,6 +45,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       rotateInterval: game.settings.get(MODULE_ID, "rotateInterval"),
       bgColor: game.settings.get(MODULE_ID, "bgColor"),
       bannerHeight: game.settings.get(MODULE_ID, "bannerHeight"),
+      textColor: game.settings.get(MODULE_ID, "textColor"),
+      showHpBar: game.settings.get(MODULE_ID, "showHpBar"),
+      cardEnabled: game.settings.get(MODULE_ID, "cardEnabled"),
+      cardColor: game.settings.get(MODULE_ID, "cardColor"),
+      cardOpacity: game.settings.get(MODULE_ID, "cardOpacity"),
+      cardRadius: game.settings.get(MODULE_ID, "cardRadius"),
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
@@ -70,6 +76,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     await game.settings.set(MODULE_ID, "rotateInterval", Number(data.rotateInterval) || 0);
     await game.settings.set(MODULE_ID, "bgColor", data.bgColor || "#00ff00");
     await game.settings.set(MODULE_ID, "bannerHeight", Number(data.bannerHeight) || 220);
+    await game.settings.set(MODULE_ID, "textColor", data.textColor || "#ffffff");
+    await game.settings.set(MODULE_ID, "showHpBar", !!data.showHpBar);
+    await game.settings.set(MODULE_ID, "cardEnabled", !!data.cardEnabled);
+    await game.settings.set(MODULE_ID, "cardColor", data.cardColor || "#000000");
+    await game.settings.set(MODULE_ID, "cardOpacity", Math.clamp(Number(data.cardOpacity ?? 0.6), 0, 1));
+    await game.settings.set(MODULE_ID, "cardRadius", Number(data.cardRadius) || 0);
 
     game.modules.get(MODULE_ID).api?.controller?.reload();
   }

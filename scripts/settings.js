@@ -37,6 +37,48 @@ export function registerSettings() {
     default: 220
   });
 
+  game.settings.register(MODULE_ID, "textColor", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "#ffffff"
+  });
+
+  game.settings.register(MODULE_ID, "showHpBar", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, "cardEnabled", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, "cardColor", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "#000000"
+  });
+
+  game.settings.register(MODULE_ID, "cardOpacity", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0.6
+  });
+
+  game.settings.register(MODULE_ID, "cardRadius", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 16
+  });
+
   game.settings.registerMenu(MODULE_ID, "configMenu", {
     name: "PCSTATS.ConfigMenuName",
     label: "PCSTATS.ConfigMenuLabel",

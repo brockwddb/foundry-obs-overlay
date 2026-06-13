@@ -43,6 +43,34 @@
     </table>
   </section>
 
+  <section class="pcs-appearance">
+    <h3>{{localize "PCSTATS.Appearance"}}</h3>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.TextColor"}}</label>
+      <input type="color" name="textColor" value="{{textColor}}">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.ShowHpBar"}}</label>
+      <input type="checkbox" name="showHpBar" {{checked showHpBar}}>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CardEnabled"}}</label>
+      <input type="checkbox" name="cardEnabled" {{checked cardEnabled}}>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CardColor"}}</label>
+      <input type="color" name="cardColor" value="{{cardColor}}">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CardOpacity"}}</label>
+      <input type="number" name="cardOpacity" value="{{cardOpacity}}" min="0" max="1" step="0.05">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CardRadius"}}</label>
+      <input type="number" name="cardRadius" value="{{cardRadius}}" min="0" max="80" step="1">
+    </div>
+  </section>
+
   <section class="pcs-general">
     <h3>{{localize "PCSTATS.General"}}</h3>
     <div class="form-group">
