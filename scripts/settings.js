@@ -79,6 +79,55 @@ export function registerSettings() {
     default: 16
   });
 
+  game.settings.register(MODULE_ID, "portraitSize", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 120
+  });
+
+  game.settings.register(MODULE_ID, "portraitShape", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "rounded"
+  });
+
+  game.settings.register(MODULE_ID, "fieldGap", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 18
+  });
+
+  game.settings.register(MODULE_ID, "paddingX", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 22
+  });
+
+  game.settings.register(MODULE_ID, "paddingY", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 12
+  });
+
+  game.settings.register(MODULE_ID, "showDividers", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false
+  });
+
+  game.settings.register(MODULE_ID, "dividerColor", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "#ffffff"
+  });
+
   game.settings.registerMenu(MODULE_ID, "configMenu", {
     name: "PCSTATS.ConfigMenuName",
     label: "PCSTATS.ConfigMenuLabel",

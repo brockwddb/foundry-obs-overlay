@@ -67,6 +67,13 @@
   cursor: grabbing;
 }
 
+.pcs-config table.pcs-fields td.pcs-color-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pcs-config .pcs-appearance .form-group,
 .pcs-config .pcs-general .form-group {
   display: flex;
   align-items: center;
@@ -74,6 +81,7 @@
   margin: 4px 0;
 }
 
+.pcs-config .pcs-appearance .form-group label,
 .pcs-config .pcs-general .form-group label {
   flex: 0 0 200px;
 }

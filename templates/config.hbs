@@ -25,6 +25,7 @@
           <th>{{localize "PCSTATS.Field"}}</th>
           <th>{{localize "PCSTATS.Enabled"}}</th>
           <th>{{localize "PCSTATS.FontSize"}}</th>
+          <th>{{localize "PCSTATS.CustomColor"}}</th>
         </tr>
       </thead>
       <tbody class="pcs-field-rows">
@@ -37,6 +38,12 @@
             <td>{{localize this.label}}</td>
             <td><input type="checkbox" name="field.{{this.key}}.enabled" {{checked this.enabled}}></td>
             <td><input type="number" name="field.{{this.key}}.fontSize" value="{{this.fontSize}}" min="6" max="120" step="1"></td>
+            <td class="pcs-color-cell">
+              {{#unless this.isPortrait}}
+                <input type="checkbox" name="field.{{this.key}}.colorEnabled" {{checked this.colorEnabled}} title="{{localize "PCSTATS.CustomColorHint"}}">
+                <input type="color" name="field.{{this.key}}.color" value="{{this.colorValue}}">
+              {{/unless}}
+            </td>
           </tr>
         {{/each}}
       </tbody>
@@ -68,6 +75,38 @@
     <div class="form-group">
       <label>{{localize "PCSTATS.CardRadius"}}</label>
       <input type="number" name="cardRadius" value="{{cardRadius}}" min="0" max="80" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.PortraitSize"}}</label>
+      <input type="number" name="portraitSize" value="{{portraitSize}}" min="20" max="400" step="2">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.PortraitShape"}}</label>
+      <select name="portraitShape">
+        {{#each portraitShapes}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.FieldGap"}}</label>
+      <input type="number" name="fieldGap" value="{{fieldGap}}" min="0" max="120" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.PaddingX"}}</label>
+      <input type="number" name="paddingX" value="{{paddingX}}" min="0" max="200" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.PaddingY"}}</label>
+      <input type="number" name="paddingY" value="{{paddingY}}" min="0" max="200" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.ShowDividers"}}</label>
+      <input type="checkbox" name="showDividers" {{checked showDividers}}>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.DividerColor"}}</label>
+      <input type="color" name="dividerColor" value="{{dividerColor}}">
     </div>
   </section>
 

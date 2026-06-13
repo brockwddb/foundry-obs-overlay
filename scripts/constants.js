@@ -16,6 +16,8 @@ export function defaultFieldConfig() {
     key,
     enabled: true,
     fontSize: key === "name" ? 28 : 18,
-    order: i
+    order: i,
+    colorEnabled: false,
+    color: ""
   }));
 }

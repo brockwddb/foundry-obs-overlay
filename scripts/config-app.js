@@ -34,10 +34,27 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const byKey = Object.fromEntries(saved.map(f => [f.key, f]));
     const fields = Object.entries(FIELD_DEFS)
       .map(([key, label], i) => {
-        const f = byKey[key] ?? { enabled: true, fontSize: 18, order: i };
-        return { key, label, enabled: f.enabled, fontSize: f.fontSize, order: f.order };
+        const f = byKey[key] ?? { enabled: true, fontSize: 18, order: i, colorEnabled: false, color: "" };
+        return {
+          key,
+          label,
+          enabled: f.enabled,
+          fontSize: f.fontSize,
+          order: f.order,
+          colorEnabled: !!f.colorEnabled,
+          color: f.color ?? "",
+          colorValue: f.color || "#ffffff",
+          isPortrait: key === "portrait"
+        };
       })
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    const portraitShape = game.settings.get(MODULE_ID, "portraitShape");
+    const portraitShapes = [
+      { value: "rounded", label: "PCSTATS.ShapeRounded", selected: portraitShape === "rounded" },
+      { value: "circle", label: "PCSTATS.ShapeCircle", selected: portraitShape === "circle" },
+      { value: "square", label: "PCSTATS.ShapeSquare", selected: portraitShape === "square" }
+    ];
 
     return {
       actors,
@@ -51,6 +68,13 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       cardColor: game.settings.get(MODULE_ID, "cardColor"),
       cardOpacity: game.settings.get(MODULE_ID, "cardOpacity"),
       cardRadius: game.settings.get(MODULE_ID, "cardRadius"),
+      portraitSize: game.settings.get(MODULE_ID, "portraitSize"),
+      portraitShapes,
+      fieldGap: game.settings.get(MODULE_ID, "fieldGap"),
+      paddingX: game.settings.get(MODULE_ID, "paddingX"),
+      paddingY: game.settings.get(MODULE_ID, "paddingY"),
+      showDividers: game.settings.get(MODULE_ID, "showDividers"),
+      dividerColor: game.settings.get(MODULE_ID, "dividerColor"),
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
@@ -68,7 +92,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       key,
       enabled: !!v.enabled,
       fontSize: Number(v.fontSize) || 18,
-      order: Number(v.order) || 0
+      order: Number(v.order) || 0,
+      colorEnabled: !!v.colorEnabled,
+      color: v.color || ""
     }));
 
     await game.settings.set(MODULE_ID, "selectedActors", selectedActors);
@@ -82,6 +108,13 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     await game.settings.set(MODULE_ID, "cardColor", data.cardColor || "#000000");
     await game.settings.set(MODULE_ID, "cardOpacity", Math.clamp(Number(data.cardOpacity ?? 0.6), 0, 1));
     await game.settings.set(MODULE_ID, "cardRadius", Number(data.cardRadius) || 0);
+    await game.settings.set(MODULE_ID, "portraitSize", Number(data.portraitSize) || 120);
+    await game.settings.set(MODULE_ID, "portraitShape", data.portraitShape || "rounded");
+    await game.settings.set(MODULE_ID, "fieldGap", Number(data.fieldGap) || 0);
+    await game.settings.set(MODULE_ID, "paddingX", Number(data.paddingX) || 0);
+    await game.settings.set(MODULE_ID, "paddingY", Number(data.paddingY) || 0);
+    await game.settings.set(MODULE_ID, "showDividers", !!data.showDividers);
+    await game.settings.set(MODULE_ID, "dividerColor", data.dividerColor || "#ffffff");
 
     game.modules.get(MODULE_ID).api?.controller?.reload();
   }

@@ -31,13 +31,17 @@ const OVERLAY_CSS = `
     text-shadow: 0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
   }
   .pcs-portrait {
-    height: 80%;
-    max-height: 160px;
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    border-radius: 8px;
     border: 2px solid rgba(255,255,255,0.85);
     box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  }
+  .pcs-divider {
+    width: 2px;
+    align-self: stretch;
+    min-height: 1.5em;
+    border-radius: 2px;
+    opacity: 0.55;
   }
   .pcs-field { line-height: 1.15; white-space: nowrap; }
   .pcs-name { font-weight: 700; }
@@ -80,11 +84,22 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${Math.clamp(Number(alpha) ?? 1, 0, 1)})`;
 }
 
-function renderField(key, view, fontSize, opts) {
-  const fs = `style="font-size:${Number(fontSize) || 18}px"`;
-  switch (key) {
-    case "portrait":
-      return view.img ? `<img class="pcs-portrait" src="${esc(view.img)}">` : "";
+function fieldStyle(f) {
+  let s = `font-size:${Number(f.fontSize) || 18}px;`;
+  if (f.colorEnabled && f.color) s += `color:${f.color};`;
+  return s;
+}
+
+function renderField(f, view, opts) {
+  const fs = `style="${fieldStyle(f)}"`;
+  switch (f.key) {
+    case "portrait": {
+      if (!view.img) return "";
+      const size = Number(opts.portraitSize) || 120;
+      const radius = opts.portraitShape === "circle" ? "50%"
+        : opts.portraitShape === "square" ? "0" : "8px";
+      return `<img class="pcs-portrait" src="${esc(view.img)}" style="height:${size}px;border-radius:${radius}">`;
+    }
     case "name":
       return `<div class="pcs-field pcs-name" ${fs}>${esc(view.name)}</div>`;
     case "hp": {
@@ -122,7 +137,12 @@ function buildCardHTML(view, fieldConfig, opts) {
   const ordered = [...fieldConfig]
     .filter(f => f.enabled)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  return ordered.map(f => renderField(f.key, view, f.fontSize, opts)).join("");
+  const parts = ordered.map(f => renderField(f, view, opts)).filter(html => html !== "");
+  if (opts.showDividers && parts.length > 1) {
+    const divider = `<div class="pcs-divider" style="background:${esc(opts.dividerColor)}"></div>`;
+    return parts.join(divider);
+  }
+  return parts.join("");
 }
 
 export class OverlayController {
@@ -173,9 +193,14 @@ export class OverlayController {
     const cardOpacity = game.settings.get(MODULE_ID, "cardOpacity") ?? 0.6;
     const cardRadius = game.settings.get(MODULE_ID, "cardRadius") ?? 16;
 
-    const cardStyle = cardEnabled
-      ? `background:${hexToRgba(cardColor, cardOpacity)};border-radius:${Number(cardRadius) || 0}px;`
-      : "";
+    const fieldGap = game.settings.get(MODULE_ID, "fieldGap") ?? 18;
+    const padX = game.settings.get(MODULE_ID, "paddingX") ?? 22;
+    const padY = game.settings.get(MODULE_ID, "paddingY") ?? 12;
+
+    let cardStyle = `gap:${Number(fieldGap) || 0}px;padding:${Number(padY) || 0}px ${Number(padX) || 0}px;`;
+    if (cardEnabled) {
+      cardStyle += `background:${hexToRgba(cardColor, cardOpacity)};border-radius:${Number(cardRadius) || 0}px;`;
+    }
 
     const doc = this.popup.document;
     doc.open();
@@ -201,7 +226,13 @@ export class OverlayController {
     if (this.index >= actors.length) this.index = 0;
     const view = getActorViewData(actors[this.index]);
     const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
-    const opts = { showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true };
+    const opts = {
+      showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true,
+      showDividers: game.settings.get(MODULE_ID, "showDividers") ?? false,
+      dividerColor: game.settings.get(MODULE_ID, "dividerColor") ?? "#ffffff",
+      portraitSize: game.settings.get(MODULE_ID, "portraitSize") ?? 120,
+      portraitShape: game.settings.get(MODULE_ID, "portraitShape") ?? "rounded"
+    };
     const html = buildCardHTML(view, fieldConfig, opts);
 
     card.style.opacity = "0";
