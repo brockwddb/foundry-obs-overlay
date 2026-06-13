@@ -1,4 +1,25 @@
 /* Config dialog styling (main Foundry page only — the popout has its own inline CSS). */
+/* Cap the window height and let the body scroll so the Save footer stays visible. */
+#pcstats-overlay-config {
+  max-height: 90vh;
+}
+
+#pcstats-overlay-config .window-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#pcstats-overlay-config .pcs-config {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+#pcstats-overlay-config .form-footer {
+  flex: 0 0 auto;
+}
+
 .pcs-config section {
   margin-bottom: 12px;
 }
