@@ -1,0 +1,56 @@
+/* Config dialog styling (main Foundry page only — the popout has its own inline CSS). */
+.pcs-config section {
+  margin-bottom: 12px;
+}
+
+.pcs-config h3 {
+  border-bottom: 1px solid var(--color-border-light-tertiary, #999);
+  padding-bottom: 4px;
+}
+
+.pcs-config .pcs-actor-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pcs-config .pcs-actor-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+}
+
+.pcs-config .pcs-actor-row img {
+  object-fit: cover;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.pcs-config table.pcs-fields {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pcs-config table.pcs-fields th,
+.pcs-config table.pcs-fields td {
+  text-align: left;
+  padding: 3px 6px;
+}
+
+.pcs-config table.pcs-fields input[type="number"] {
+  width: 70px;
+}
+
+.pcs-config .pcs-general .form-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.pcs-config .pcs-general .form-group label {
+  flex: 0 0 200px;
+}
