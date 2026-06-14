@@ -1,4 +1,5 @@
 import { MODULE_ID, FIELD_DEFS, OVERLAYS, OVERLAY_KEYS, CARD_ANIMATIONS, defaultOverlayConfig } from "./constants.js";
+import { buildPreviewDocument } from "./overlay.js";
 
 const TAB_LABELS = {
   horizontalBanner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },
@@ -259,6 +260,41 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       btn.addEventListener("click", () => {
         OverlayConfigApp.#pickImage(btn.parentElement?.querySelector(".pcs-texture-input"));
       });
+    }
+    this.#wirePreviews();
+  }
+
+  #wirePreviews() {
+    for (const key of OVERLAY_KEYS) {
+      const pane = this.element.querySelector(`.pcs-pane[data-pane="${key}"]`);
+      if (!pane) continue;
+      this.#updatePreview(key);
+      let timer = null;
+      const schedule = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => this.#updatePreview(key), 200);
+      };
+      pane.addEventListener("input", schedule);
+      pane.addEventListener("change", schedule);
+    }
+  }
+
+  #paneConfig(key) {
+    const FDE = foundry.applications?.ux?.FormDataExtended ?? globalThis.FormDataExtended;
+    const formData = new FDE(this.element).object;
+    const data = foundry.utils.expandObject(formData);
+    return OverlayConfigApp.#parsePane(data[key], key);
+  }
+
+  #updatePreview(key) {
+    const frame = this.element.querySelector(`.pcs-preview-frame[data-preview="${key}"]`);
+    if (!frame) return;
+    try {
+      const cfg = this.#paneConfig(key);
+      const { mode, column } = OVERLAYS[key];
+      frame.srcdoc = buildPreviewDocument(cfg, mode, !!column);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | preview render failed`, err);
     }
   }
 

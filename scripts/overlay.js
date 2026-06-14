@@ -434,6 +434,106 @@ function buildCardHTML(view, cfg) {
   return downBadge(view, cfg) + body;
 }
 
+function dynamicCss(cfg) {
+  const font = fontDef(cfg.fontFamily);
+  const bodyFont = font.body;
+  const dispFont = font.display ?? font.body;
+
+  const a = Math.clamp(num(cfg.cardOpacity, 1), 0, 1);
+  const texture = String(cfg.textureUrl ?? "").replace(/["'()\\]/g, "");
+  let bg = "transparent";
+  if (cfg.cardEnabled) {
+    bg = texture
+      ? `url("${texture}") center/cover no-repeat`
+      : `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`;
+  }
+  const border = cfg.borderEnabled ? `${num(cfg.borderWidth, 2)}px solid ${cfg.borderColor}` : "none";
+  const shadow = (cfg.cardEnabled && cfg.plateShadow !== false)
+    ? "box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);"
+    : "";
+  const textShadow = cfg.cardEnabled ? "none" : "0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)";
+
+  const gap = num(cfg.fieldGap, 18);
+  const padX = num(cfg.paddingX, 22);
+  const padY = num(cfg.paddingY, 12);
+
+  return `
+    body { font-family: ${bodyFont}; text-shadow: ${textShadow}; }
+    .pcs-name, .pcs-message { font-family: ${dispFont}; }
+    #pcs-card { gap: ${gap}px; padding: ${padY}px ${padX}px; }
+    .pcs-plate { gap: ${gap}px; padding: ${padY}px ${padX}px; }
+    .pcs-card-bg {
+      background: ${bg};
+      border: ${border};
+      border-radius: ${num(cfg.cardRadius, 8)}px;
+      ${shadow}
+    }
+  `;
+}
+
+// A sample character used by the config live preview when no real actor is
+// selected (so the preview always shows something).
+const SAMPLE_VIEW = {
+  id: "__sample__",
+  name: "Sample Hero",
+  img: "icons/svg/mystery-man.svg",
+  tokenImg: "icons/svg/mystery-man.svg",
+  hp: { value: 22, max: 30, temp: 0, pct: 73 },
+  down: false,
+  ac: 16,
+  level: 5,
+  classLabel: "Fighter 5",
+  abilities: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].map((label, i) => ({
+    key: label.toLowerCase(), label, value: 14 + i % 3, mod: 2, modStr: "+2"
+  })),
+  conditions: [],
+  deathSaves: { success: 0, failure: 0, relevant: false },
+  concentration: false,
+  inspiration: false,
+  exhaustion: 0,
+  spellSlots: [],
+  passivePerception: 14,
+  profBonus: 3,
+  currency: []
+};
+
+function previewViews(cfg, count) {
+  const actors = (cfg.selectedActors ?? []).map(id => game.actors?.get(id)).filter(a => a);
+  if (actors.length) return actors.slice(0, count).map(a => getActorViewData(a));
+  return Array.from({ length: Math.min(count, 3) }, () => SAMPLE_VIEW);
+}
+
+function previewPlateHTML(view, cfg) {
+  const parts = buildFieldParts(view, cfg);
+  const cls = ["pcs-plate", "pcs-card-bg"];
+  if (cfg.showDownState && view.down) cls.push("pcs-down");
+  const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(view.id, cfg)}`;
+  return `<div class="${cls.join(" ")}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
+}
+
+// Build a self-contained HTML document for the live preview iframe.
+export function buildPreviewDocument(cfg, mode, column) {
+  const css = BASE_CSS + dynamicCss(cfg);
+  const fonts = fontLinks(cfg.fontFamily);
+
+  let inner;
+  if (mode === "carousel") {
+    const view = previewViews(cfg, 1)[0];
+    const cardClass = column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
+    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass}">${buildCardHTML(view, cfg)}</div></div></div>`;
+  } else {
+    const plates = previewViews(cfg, 4).map(v => previewPlateHTML(v, cfg)).join("");
+    if (mode === "vertical") {
+      inner = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical">${plates}</div></div>`;
+    } else {
+      inner = `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party">${plates}</div></div>`;
+    }
+  }
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${fonts}<style>${css}</style></head>
+    <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${inner}</body></html>`;
+}
+
 function buildMessageHTML(message, cfg) {
   let s = `font-size:${num(cfg.messageFontSize, 26)}px;`;
   if (cfg.messageColor) s += `color:${cfg.messageColor};`;
@@ -543,46 +643,9 @@ export class OverlayController {
     this.popup = null;
   }
 
-  _dynamicCss(cfg) {
-    const font = fontDef(cfg.fontFamily);
-    const bodyFont = font.body;
-    const dispFont = font.display ?? font.body;
-
-    const a = Math.clamp(num(cfg.cardOpacity, 1), 0, 1);
-    const texture = String(cfg.textureUrl ?? "").replace(/["'()\\]/g, "");
-    let bg = "transparent";
-    if (cfg.cardEnabled) {
-      bg = texture
-        ? `url("${texture}") center/cover no-repeat`
-        : `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`;
-    }
-    const border = cfg.borderEnabled ? `${num(cfg.borderWidth, 2)}px solid ${cfg.borderColor}` : "none";
-    const shadow = (cfg.cardEnabled && cfg.plateShadow !== false)
-      ? "box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);"
-      : "";
-    const textShadow = cfg.cardEnabled ? "none" : "0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)";
-
-    const gap = num(cfg.fieldGap, 18);
-    const padX = num(cfg.paddingX, 22);
-    const padY = num(cfg.paddingY, 12);
-
-    return `
-      body { font-family: ${bodyFont}; text-shadow: ${textShadow}; }
-      .pcs-name, .pcs-message { font-family: ${dispFont}; }
-      #pcs-card { gap: ${gap}px; padding: ${padY}px ${padX}px; }
-      .pcs-plate { gap: ${gap}px; padding: ${padY}px ${padX}px; }
-      .pcs-card-bg {
-        background: ${bg};
-        border: ${border};
-        border-radius: ${num(cfg.cardRadius, 8)}px;
-        ${shadow}
-      }
-    `;
-  }
-
   _writeSkeleton(cfg = this.cfg()) {
     const fonts = fontLinks(cfg.fontFamily);
-    const css = BASE_CSS + this._dynamicCss(cfg);
+    const css = BASE_CSS + dynamicCss(cfg);
 
     let body;
     if (this.mode === "carousel") {

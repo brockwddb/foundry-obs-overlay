@@ -99,6 +99,7 @@
   "PCSTATS.DiceFlair": "Crit / fumble flair on natural 20 / 1",
   "PCSTATS.CritColor": "Critical (nat 20) color",
   "PCSTATS.FumbleColor": "Fumble (nat 1) color",
+  "PCSTATS.Preview": "Live preview",
   "PCSTATS.TabCharacters": "Characters",
   "PCSTATS.CharactersHint": "Per-character identity, shared by all overlays: an accent frame color and whether to use token art instead of the actor portrait.",
   "PCSTATS.Accent": "Accent frame",

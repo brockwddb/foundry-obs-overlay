@@ -10,6 +10,11 @@
     <div class="pcs-pane {{#if @first}}active{{/if}}" data-pane="{{this.key}}">
       <p class="notes">{{localize this.hint}}</p>
 
+      <section class="pcs-preview">
+        <h3>{{localize "PCSTATS.Preview"}}</h3>
+        <iframe class="pcs-preview-frame" data-preview="{{this.key}}" title="preview"></iframe>
+      </section>
+
       <section>
         <h3>{{localize "PCSTATS.SelectCharacters"}}</h3>
         <p class="notes">{{localize "PCSTATS.SelectCharactersHint"}}</p>
