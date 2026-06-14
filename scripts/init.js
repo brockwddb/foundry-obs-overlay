@@ -10,19 +10,23 @@ Hooks.once("ready", async () => {
   await migrateSettings();
 
   const banner = new OverlayController("banner");
+  const verticalcard = new OverlayController("verticalcard");
   const party = new OverlayController("party");
   const vertical = new OverlayController("vertical");
   banner.registerHooks();
+  verticalcard.registerHooks();
   party.registerHooks();
   vertical.registerHooks();
 
   const mod = game.modules.get(MODULE_ID);
   mod.api = {
-    controllers: { banner, party, vertical },
+    controllers: { banner, verticalcard, party, vertical },
     // Back-compat: bare open/close act on the banner.
     controller: banner,
     openBanner: () => banner.open(),
     closeBanner: () => banner.close(),
+    openVerticalCard: () => verticalcard.open(),
+    closeVerticalCard: () => verticalcard.close(),
     openParty: () => party.open(),
     closeParty: () => party.close(),
     openVertical: () => vertical.open(),
@@ -46,6 +50,15 @@ Hooks.on("getSceneControlButtons", (controls) => {
     button: true,
     onClick: () => game.modules.get(MODULE_ID).api?.openBanner(),
     onChange: () => game.modules.get(MODULE_ID).api?.openBanner()
+  };
+
+  tokenControl.tools.pcStatsVerticalCard = {
+    name: "pcStatsVerticalCard",
+    title: "PCSTATS.OpenVerticalCard",
+    icon: "fa-solid fa-id-card",
+    button: true,
+    onClick: () => game.modules.get(MODULE_ID).api?.openVerticalCard(),
+    onChange: () => game.modules.get(MODULE_ID).api?.openVerticalCard()
   };
 
   tokenControl.tools.pcStatsParty = {

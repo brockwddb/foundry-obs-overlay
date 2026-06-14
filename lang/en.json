@@ -1,5 +1,6 @@
 {
   "PCSTATS.OpenBanner": "Open Banner Overlay",
+  "PCSTATS.OpenVerticalCard": "Open Vertical Card Overlay",
   "PCSTATS.OpenParty": "Open Party Row Overlay",
   "PCSTATS.OpenVertical": "Open Vertical Bar Overlay",
   "PCSTATS.ConfigMenuName": "PC Stats Overlay Settings",
@@ -8,7 +9,9 @@
   "PCSTATS.TabBanner": "Banner",
   "PCSTATS.TabParty": "Party Row",
   "PCSTATS.TabVertical": "Vertical Bar",
+  "PCSTATS.TabVerticalCard": "Vertical Card",
   "PCSTATS.TabBannerHint": "Rotating banner — shows one character at a time and cycles through sponsor messages. Launch it from the token controls (TV icon).",
+  "PCSTATS.TabVerticalCardHint": "Rotating vertical card — same as the banner (one character at a time, sponsor messages, animations) but with fields stacked in a column. Launch it from the token controls (ID-card icon).",
   "PCSTATS.TabPartyHint": "Party row — shows every selected character at once, side by side. Launch it from the token controls (people icon). Line it up above your scene's character art.",
   "PCSTATS.TabVerticalHint": "Vertical bar — shows every selected character stacked in a column. Launch it from the token controls (vertical-lines icon). Good for a side rail.",
   "PCSTATS.SelectCharacters": "Characters",

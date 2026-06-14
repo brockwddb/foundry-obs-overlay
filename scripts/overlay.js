@@ -42,6 +42,18 @@ const BASE_CSS = `
     gap: 18px;
     padding: 12px 22px;
   }
+  /* Vertical card: same rotating card, fields stacked in a column. */
+  #pcs-card.pcs-card-col {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  #pcs-card.pcs-card-col .pcs-divider {
+    width: auto;
+    height: 2px;
+    min-height: 0;
+    align-self: stretch;
+  }
   /* Party-row layout: one plate per character, sitting along the bottom. */
   #pcs-root.pcs-party-root { align-items: flex-end; }
   #pcs-party {
@@ -279,8 +291,9 @@ function buildMessageHTML(message, cfg) {
 
 export class OverlayController {
   constructor(key) {
-    this.key = key;                       // "banner" | "party"
-    this.mode = OVERLAYS[key].mode;       // "carousel" | "party"
+    this.key = key;                       // "banner" | "verticalcard" | "party" | "vertical"
+    this.mode = OVERLAYS[key].mode;       // "carousel" | "party" | "vertical"
+    this.column = !!OVERLAYS[key].column; // carousel laid out as a vertical card
     this.popup = null;
     this.index = 0;
     this.rotateTimer = null;
@@ -297,7 +310,7 @@ export class OverlayController {
 
   cfg() {
     const stored = game.settings.get(MODULE_ID, `${this.key}Config`) ?? {};
-    return foundry.utils.mergeObject(defaultOverlayConfig(this.mode), stored, { inplace: false });
+    return foundry.utils.mergeObject(defaultOverlayConfig(this.key), stored, { inplace: false });
   }
 
   getActors(cfg = this.cfg()) {
@@ -411,7 +424,8 @@ export class OverlayController {
 
     let body;
     if (this.mode === "carousel") {
-      body = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="pcs-card-bg"></div></div></div>`;
+      const cardClass = this.column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
+      body = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass}"></div></div></div>`;
     } else if (this.mode === "vertical") {
       body = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical"></div></div>`;
     } else {

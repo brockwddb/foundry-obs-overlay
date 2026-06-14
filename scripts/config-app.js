@@ -2,6 +2,7 @@ import { MODULE_ID, FIELD_DEFS, OVERLAYS, CARD_ANIMATIONS, defaultOverlayConfig 
 
 const TAB_LABELS = {
   banner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },
+  verticalcard: { label: "PCSTATS.TabVerticalCard", hint: "PCSTATS.TabVerticalCardHint" },
   party: { label: "PCSTATS.TabParty", hint: "PCSTATS.TabPartyHint" },
   vertical: { label: "PCSTATS.TabVertical", hint: "PCSTATS.TabVerticalHint" }
 };
@@ -42,7 +43,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   #preparePane(key) {
     const mode = OVERLAYS[key].mode;
     const stored = game.settings.get(MODULE_ID, `${key}Config`) ?? {};
-    const cfg = foundry.utils.mergeObject(defaultOverlayConfig(mode), stored, { inplace: false });
+    const cfg = foundry.utils.mergeObject(defaultOverlayConfig(key), stored, { inplace: false });
 
     const selected = new Set(cfg.selectedActors ?? []);
     const actors = game.actors
@@ -103,16 +104,21 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _prepareContext() {
     return {
-      panes: [this.#preparePane("banner"), this.#preparePane("party"), this.#preparePane("vertical")],
+      panes: [
+        this.#preparePane("banner"),
+        this.#preparePane("verticalcard"),
+        this.#preparePane("party"),
+        this.#preparePane("vertical")
+      ],
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
     };
   }
 
-  static #parsePane(paneData, mode) {
+  static #parsePane(paneData, key) {
     const data = paneData ?? {};
-    const cfg = defaultOverlayConfig(mode);
+    const cfg = defaultOverlayConfig(key);
 
     cfg.selectedActors = Object.entries(data.actor ?? {})
       .filter(([, v]) => v)
@@ -174,12 +180,14 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static async #onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object);
 
-    await game.settings.set(MODULE_ID, "bannerConfig", OverlayConfigApp.#parsePane(data.banner, "carousel"));
+    await game.settings.set(MODULE_ID, "bannerConfig", OverlayConfigApp.#parsePane(data.banner, "banner"));
+    await game.settings.set(MODULE_ID, "verticalcardConfig", OverlayConfigApp.#parsePane(data.verticalcard, "verticalcard"));
     await game.settings.set(MODULE_ID, "partyConfig", OverlayConfigApp.#parsePane(data.party, "party"));
     await game.settings.set(MODULE_ID, "verticalConfig", OverlayConfigApp.#parsePane(data.vertical, "vertical"));
 
     const api = game.modules.get(MODULE_ID).api;
     api?.controllers?.banner?.reload();
+    api?.controllers?.verticalcard?.reload();
     api?.controllers?.party?.reload();
     api?.controllers?.vertical?.reload();
   }
@@ -218,7 +226,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
           content: `<p>${game.i18n.localize("PCSTATS.ResetConfirm")}</p>`
         });
         if (!confirmed) return;
-        await game.settings.set(MODULE_ID, `${key}Config`, defaultOverlayConfig(OVERLAYS[key].mode));
+        await game.settings.set(MODULE_ID, `${key}Config`, defaultOverlayConfig(key));
         game.modules.get(MODULE_ID).api?.controllers?.[key]?.reload();
         this.render();
       });
