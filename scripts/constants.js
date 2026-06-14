@@ -54,6 +54,8 @@ export function defaultOverlayConfig(mode = "carousel") {
     paddingY: 8,
     showDividers: false,
     dividerColor: "#b08d3c",
+    maxWidth: 0,
+    maxHeight: 0,
     bannerWidth: party ? 1600 : 960,
     bannerHeight: party ? 150 : 120,
     combatAnimations: true,
@@ -61,6 +63,7 @@ export function defaultOverlayConfig(mode = "carousel") {
     // Carousel/banner only:
     rotateInterval: 8,
     cardTransition: 0.25,
+    cardGap: 0,
     customMessages: [],
     messageFrequency: 3,
     messageFontSize: 26,

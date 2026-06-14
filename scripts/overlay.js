@@ -44,6 +44,7 @@ const BASE_CSS = `
     gap: 14px;
     padding: 6px 12px 10px;
     box-sizing: border-box;
+    transform-origin: center bottom;
   }
   .pcs-plate {
     position: relative;
@@ -397,6 +398,27 @@ export class OverlayController {
     else this._renderCarousel();
   }
 
+  // When maxWidth/maxHeight are set, scale the whole composition (fonts,
+  // portraits, bars — everything) to fit within that box, preserving the
+  // relative font sizes the user chose. When unset, content renders at the
+  // configured sizes.
+  _applyScale(el, cfg) {
+    if (!el) return;
+    const maxW = num(cfg.maxWidth, 0);
+    const maxH = num(cfg.maxHeight, 0);
+    el.style.transform = "none";
+    if (maxW <= 0 && maxH <= 0) return;
+    const w = el.scrollWidth || el.offsetWidth;
+    const h = el.scrollHeight || el.offsetHeight;
+    if (!w || !h) return;
+    let factor = Infinity;
+    if (maxW > 0) factor = Math.min(factor, maxW / w);
+    if (maxH > 0) factor = Math.min(factor, maxH / h);
+    if (!Number.isFinite(factor)) return;
+    factor = Math.max(0.05, Math.min(factor, 10));
+    el.style.transform = `scale(${factor.toFixed(4)})`;
+  }
+
   _renderCarousel() {
     const card = this.popup.document.getElementById("pcs-card");
     if (!card) return;
@@ -420,6 +442,7 @@ export class OverlayController {
       const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
       if (!c || this.animating) return;
       c.innerHTML = html;
+      this._applyScale(c, cfg);
       c.style.opacity = "1";
     }, fadeMs);
   }
@@ -439,6 +462,7 @@ export class OverlayController {
       const parts = buildFieldParts(getActorViewData(a), cfg);
       return `<div class="pcs-plate pcs-card-bg" data-actor-id="${esc(a.id)}">${parts.join("")}</div>`;
     }).join("");
+    this._applyScale(party, cfg);
   }
 
   advance() {
@@ -449,18 +473,43 @@ export class OverlayController {
     this.render();
   }
 
+  // Rotation runs as a self-rescheduling chain so we can insert an optional
+  // blank gap (the banner goes empty) between cards: display -> [blank gap] ->
+  // next card -> display -> ...
   startRotation() {
     this.stopRotation();
     if (this.mode === "party") return;
-    const interval = num(this.cfg().rotateInterval, 0);
-    if (interval > 0) {
-      this.rotateTimer = setInterval(() => this.advance(), interval * 1000);
+    const cfg = this.cfg();
+    const display = num(cfg.rotateInterval, 0);
+    if (display <= 0) return;
+    if (this.getSlides(cfg).length <= 1) return;
+    this.rotateTimer = setTimeout(() => this._rotateTick(), display * 1000);
+  }
+
+  _rotateTick() {
+    if (!this.isOpen || this.animating) return;
+    const cfg = this.cfg();
+    const display = num(cfg.rotateInterval, 0);
+    if (display <= 0) return;
+
+    const gap = num(cfg.cardGap, 0);
+    if (gap > 0) {
+      const card = this.popup.document.getElementById("pcs-card");
+      if (card) card.style.opacity = "0"; // blank the banner during the gap
+      this.rotateTimer = setTimeout(() => {
+        if (!this.isOpen || this.animating) return;
+        this.advance();
+        this.rotateTimer = setTimeout(() => this._rotateTick(), num(this.cfg().rotateInterval, 0) * 1000);
+      }, gap * 1000);
+    } else {
+      this.advance();
+      this.rotateTimer = setTimeout(() => this._rotateTick(), display * 1000);
     }
   }
 
   stopRotation() {
     if (this.rotateTimer) {
-      clearInterval(this.rotateTimer);
+      clearTimeout(this.rotateTimer);
       this.rotateTimer = null;
     }
   }
@@ -505,11 +554,13 @@ export class OverlayController {
     const actor = game.actors.get(event.actorId);
     if (!card || !actor) { this.finishEvent(); return; }
 
+    const cfg = this.cfg();
     card.style.opacity = "1";
-    card.innerHTML = buildCardHTML(getActorViewData(actor), this.cfg());
+    card.innerHTML = buildCardHTML(getActorViewData(actor), cfg);
+    this._applyScale(card, cfg);
     this._flashTarget(card, event);
 
-    const dur = num(this.cfg().combatAnimDuration, 3) * 1000;
+    const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
   }
 

@@ -124,6 +124,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.paddingY = Number(data.paddingY) || 0;
     cfg.showDividers = !!data.showDividers;
     cfg.dividerColor = data.dividerColor || "#b08d3c";
+    cfg.maxWidth = Math.max(0, Number(data.maxWidth) || 0);
+    cfg.maxHeight = Math.max(0, Number(data.maxHeight) || 0);
     cfg.bannerWidth = Number(data.bannerWidth) || 960;
     cfg.bannerHeight = Number(data.bannerHeight) || 120;
     cfg.combatAnimations = !!data.combatAnimations;
@@ -132,6 +134,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;
     cfg.cardTransition = Math.clamp(Number(data.cardTransition ?? 0.25), 0, 5);
+    cfg.cardGap = Math.clamp(Number(data.cardGap) || 0, 0, 600);
     cfg.customMessages = Object.values(data.message ?? {})
       .map(m => ({ text: String(m?.text ?? "").trim(), enabled: !!m?.enabled }))
       .filter(m => m.text !== "");
