@@ -1,16 +1,17 @@
-import { MODULE_ID } from "./constants.js";
+import { MODULE_ID, OVERLAYS, defaultOverlayConfig } from "./constants.js";
 import { getActorViewData } from "./data.js";
 
-const FADE_MS = 250;
+const DEFAULT_TRANSITION_S = 0.25;
 
-// Thematic fonts for the parchment theme (loaded into the popout head only when
-// that theme is active). Falls back to serif if the popout can't reach Google.
+// Thematic fonts for the serif font option (loaded into the popout head only
+// when that option is active). Falls back to serif if Google can't be reached.
 const FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=IM+Fell+English&display=swap">`;
 
-// Base CSS injected into the popout document (the popout doesn't share the main
-// page's stylesheet, so everything the banner needs lives here).
+// Base CSS injected into the popout document. Colors/fonts/backgrounds are NOT
+// set here — those come from the per-overlay config via the dynamic style block,
+// so every visual is editable in the config window.
 const BASE_CSS = `
   html, body {
     margin: 0;
@@ -18,8 +19,6 @@ const BASE_CSS = `
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-    font-family: "Signika", "Helvetica Neue", Arial, sans-serif;
-    color: #ffffff;
   }
   #pcs-root {
     width: 100%;
@@ -34,8 +33,6 @@ const BASE_CSS = `
     align-items: center;
     gap: 18px;
     padding: 12px 22px;
-    transition: opacity ${FADE_MS}ms ease-in-out;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
   }
   /* Party-row layout: one plate per character, sitting along the bottom. */
   #pcs-root.pcs-party-root { align-items: flex-end; }
@@ -44,7 +41,7 @@ const BASE_CSS = `
     display: flex;
     justify-content: space-evenly;
     align-items: flex-end;
-    gap: 12px;
+    gap: 14px;
     padding: 6px 12px 10px;
     box-sizing: border-box;
   }
@@ -55,24 +52,21 @@ const BASE_CSS = `
     align-items: center;
     gap: 4px;
     padding: 8px 12px;
-    border-radius: 8px;
-    background: rgba(0,0,0,0.5);
-    text-shadow: 0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
   }
   .pcs-plate .pcs-field { text-align: center; }
   .pcs-plate .pcs-hpbar { min-width: 90px; }
   .pcs-portrait {
     aspect-ratio: 1 / 1;
     object-fit: cover;
-    border: 2px solid rgba(255,255,255,0.85);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    border: 2px solid rgba(255,255,255,0.55);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
   }
   .pcs-divider {
     width: 2px;
     align-self: stretch;
     min-height: 1.5em;
     border-radius: 2px;
-    opacity: 0.55;
+    opacity: 0.6;
   }
   .pcs-field { line-height: 1.15; white-space: nowrap; }
   .pcs-name { font-weight: 700; }
@@ -84,13 +78,13 @@ const BASE_CSS = `
     height: 0.55em;
     margin-top: 4px;
     border-radius: 4px;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.35);
     overflow: hidden;
   }
   .pcs-hpbar > span {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, #c0392b, #2ecc71);
+    background: linear-gradient(90deg, #9b2d20, #6f9b3a);
     transform-origin: left center;
   }
   .pcs-abilities { display: flex; gap: 12px; }
@@ -109,12 +103,12 @@ const BASE_CSS = `
     font-size: 2.4em;
     font-weight: 900;
     pointer-events: none;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9);
+    text-shadow: 0 2px 6px rgba(0,0,0,0.6), 0 0 4px rgba(255,255,255,0.5);
     animation: pcs-hit-float 1.4s ease-out forwards;
     z-index: 5;
   }
-  .pcs-hit-damage { color: #ff4d4d; }
-  .pcs-hit-heal { color: #56e06a; }
+  .pcs-hit-damage { color: #a01e12; }
+  .pcs-hit-heal { color: #3f7d28; }
   @keyframes pcs-hit-float {
     0%   { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
     15%  { opacity: 1; transform: translate(-50%, -18px) scale(1.15); }
@@ -132,45 +126,16 @@ const BASE_CSS = `
   }
   @keyframes pcs-flash-damage {
     0%   { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
-    25%  { filter: drop-shadow(0 0 14px rgba(255,40,40,0.95)); }
+    25%  { filter: drop-shadow(0 0 14px rgba(220,40,40,0.9)); }
     100% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
   }
   @keyframes pcs-flash-heal {
     0%   { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-    25%  { filter: drop-shadow(0 0 14px rgba(60,220,90,0.95)); }
+    25%  { filter: drop-shadow(0 0 14px rgba(60,180,90,0.9)); }
     100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
   }
   .pcs-flash-damage { animation: pcs-flash-damage 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
   .pcs-flash-heal { animation: pcs-flash-heal 0.9s ease-out; }
-`;
-
-// Parchment & ink theme — layered over BASE_CSS, scoped to a body class so the
-// base styles stay untouched.
-const PARCHMENT_CSS = `
-  body.pcs-theme-parchment { font-family: "IM Fell English", Georgia, "Times New Roman", serif; color: #3a2a14; }
-  body.pcs-theme-parchment #pcs-card,
-  body.pcs-theme-parchment .pcs-plate {
-    background: radial-gradient(120% 140% at 50% 0%, #f7eed6 0%, #ecdcb4 65%, #ddc795 100%);
-    border: 2px solid #b08d3c;
-    box-shadow: 0 0 0 2px #6f5a2a, 0 4px 12px rgba(0,0,0,0.5), inset 0 0 22px rgba(120,90,40,0.22);
-    color: #3a2a14;
-    text-shadow: none;
-  }
-  body.pcs-theme-parchment .pcs-field { color: #3a2a14; text-shadow: none; }
-  body.pcs-theme-parchment .pcs-name,
-  body.pcs-theme-parchment .pcs-message {
-    font-family: "Cinzel", Georgia, serif;
-    font-weight: 700;
-    color: #5a3a16;
-    letter-spacing: 1px;
-  }
-  body.pcs-theme-parchment .pcs-portrait { border-color: #b08d3c; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
-  body.pcs-theme-parchment .pcs-hpbar { background: rgba(58,42,20,0.28); }
-  body.pcs-theme-parchment .pcs-hpbar > span { background: linear-gradient(90deg, #9b2d20, #6f9b3a); }
-  body.pcs-theme-parchment .pcs-divider { background: #b08d3c !important; opacity: 0.75; }
-  body.pcs-theme-parchment .pcs-ability b { color: #6f5a2a; opacity: 1; }
-  body.pcs-theme-parchment .pcs-hit-damage { color: #a01e12; }
-  body.pcs-theme-parchment .pcs-hit-heal { color: #3f7d28; }
 `;
 
 function esc(str) {
@@ -178,6 +143,26 @@ function esc(str) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
 }
+
+function num(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+// Mix a hex color toward white (255) or black (0) by amt, returning rgba.
+function mix(hex, target, amt, alpha) {
+  const h = String(hex ?? "").replace("#", "");
+  const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  if (Number.isNaN(n)) return `rgba(0,0,0,${Math.clamp(Number(alpha) || 0, 0, 1)})`;
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  r = Math.round(r + (target - r) * amt);
+  g = Math.round(g + (target - g) * amt);
+  b = Math.round(b + (target - b) * amt);
+  return `rgba(${r},${g},${b},${Math.clamp(Number(alpha) ?? 1, 0, 1)})`;
+}
+const lighten = (hex, amt, a) => mix(hex, 255, amt, a);
+const darken = (hex, amt, a) => mix(hex, 0, amt, a);
 
 function hexToRgba(hex, alpha) {
   const h = String(hex ?? "").replace("#", "");
@@ -189,19 +174,19 @@ function hexToRgba(hex, alpha) {
 }
 
 function fieldStyle(f) {
-  let s = `font-size:${Number(f.fontSize) || 18}px;`;
+  let s = `font-size:${num(f.fontSize, 18)}px;`;
   if (f.colorEnabled && f.color) s += `color:${f.color};`;
   return s;
 }
 
-function renderField(f, view, opts) {
+function renderField(f, view, cfg) {
   const fs = `style="${fieldStyle(f)}"`;
   switch (f.key) {
     case "portrait": {
       if (!view.img) return "";
-      const size = Number(opts.portraitSize) || 120;
-      const radius = opts.portraitShape === "circle" ? "50%"
-        : opts.portraitShape === "square" ? "0" : "8px";
+      const size = num(cfg.portraitSize, 120);
+      const radius = cfg.portraitShape === "circle" ? "50%"
+        : cfg.portraitShape === "square" ? "0" : "8px";
       return `<img class="pcs-portrait" src="${esc(view.img)}" style="height:${size}px;border-radius:${radius}">`;
     }
     case "name":
@@ -209,7 +194,7 @@ function renderField(f, view, opts) {
     case "hp": {
       if (view.hp.value === null && view.hp.max === null) return "";
       const temp = view.hp.temp ? ` (+${esc(view.hp.temp)})` : "";
-      const bar = opts.showHpBar
+      const bar = cfg.showHpBar
         ? `<div class="pcs-hpbar"><span style="transform:scaleX(${(view.hp.pct / 100).toFixed(3)})"></span></div>`
         : "";
       return `<div class="pcs-field" ${fs}>HP <span class="pcs-hp-value">${esc(view.hp.value)}</span>/${esc(view.hp.max)}${temp}${bar}</div>`;
@@ -237,31 +222,33 @@ function renderField(f, view, opts) {
   }
 }
 
-function buildFieldParts(view, fieldConfig, opts) {
-  return [...fieldConfig]
+function buildFieldParts(view, cfg) {
+  return [...(cfg.fieldConfig ?? [])]
     .filter(f => f.enabled)
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    .map(f => renderField(f, view, opts))
+    .map(f => renderField(f, view, cfg))
     .filter(html => html !== "");
 }
 
-function buildCardHTML(view, fieldConfig, opts) {
-  const parts = buildFieldParts(view, fieldConfig, opts);
-  if (opts.showDividers && parts.length > 1) {
-    const divider = `<div class="pcs-divider" style="background:${esc(opts.dividerColor)}"></div>`;
+function buildCardHTML(view, cfg) {
+  const parts = buildFieldParts(view, cfg);
+  if (cfg.showDividers && parts.length > 1) {
+    const divider = `<div class="pcs-divider" style="background:${esc(cfg.dividerColor)}"></div>`;
     return parts.join(divider);
   }
   return parts.join("");
 }
 
-function buildMessageHTML(message, opts) {
-  let s = `font-size:${Number(opts.messageFontSize) || 26}px;`;
-  if (opts.messageColor) s += `color:${opts.messageColor};`;
+function buildMessageHTML(message, cfg) {
+  let s = `font-size:${num(cfg.messageFontSize, 26)}px;`;
+  if (cfg.messageColor) s += `color:${cfg.messageColor};`;
   return `<div class="pcs-field pcs-message" style="${s}">${esc(message.text)}</div>`;
 }
 
 export class OverlayController {
-  constructor() {
+  constructor(key) {
+    this.key = key;                       // "banner" | "party"
+    this.mode = OVERLAYS[key].mode;       // "carousel" | "party"
     this.popup = null;
     this.index = 0;
     this.rotateTimer = null;
@@ -275,29 +262,28 @@ export class OverlayController {
     return this.popup && !this.popup.closed;
   }
 
-  get layoutMode() {
-    return game.settings.get(MODULE_ID, "layoutMode") ?? "carousel";
+  cfg() {
+    const stored = game.settings.get(MODULE_ID, `${this.key}Config`) ?? {};
+    return foundry.utils.mergeObject(defaultOverlayConfig(this.mode), stored, { inplace: false });
   }
 
-  getActors() {
-    const ids = game.settings.get(MODULE_ID, "selectedActors") ?? [];
-    return ids.map(id => game.actors.get(id)).filter(a => a);
+  getActors(cfg = this.cfg()) {
+    return (cfg.selectedActors ?? []).map(id => game.actors.get(id)).filter(a => a);
   }
 
-  getMessages() {
-    const msgs = game.settings.get(MODULE_ID, "customMessages") ?? [];
-    return msgs.filter(m => m && m.enabled && String(m.text ?? "").trim() !== "");
+  getMessages(cfg = this.cfg()) {
+    return (cfg.customMessages ?? []).filter(m => m && m.enabled && String(m.text ?? "").trim() !== "");
   }
 
   // Build the carousel queue: character slides with sponsor/custom messages
   // sprinkled in at the configured frequency.
-  getSlides() {
-    const actors = this.getActors().map(a => ({ type: "actor", actor: a }));
-    const messages = this.getMessages().map(m => ({ type: "message", message: m }));
+  getSlides(cfg = this.cfg()) {
+    const actors = this.getActors(cfg).map(a => ({ type: "actor", actor: a }));
+    const messages = this.getMessages(cfg).map(m => ({ type: "message", message: m }));
     if (!messages.length) return actors;
     if (!actors.length) return messages;
 
-    const freq = Number(game.settings.get(MODULE_ID, "messageFrequency")) || 0;
+    const freq = num(cfg.messageFrequency, 0);
     if (freq <= 0) return actors;
 
     const out = [];
@@ -309,28 +295,8 @@ export class OverlayController {
         mi++;
       }
     });
-    // Fewer characters than the frequency: still show the messages once per cycle.
     if (mi === 0) out.push(...messages);
     return out;
-  }
-
-  _readOpts() {
-    return {
-      showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true,
-      showDividers: game.settings.get(MODULE_ID, "showDividers") ?? false,
-      dividerColor: game.settings.get(MODULE_ID, "dividerColor") ?? "#ffffff",
-      portraitSize: game.settings.get(MODULE_ID, "portraitSize") ?? 120,
-      portraitShape: game.settings.get(MODULE_ID, "portraitShape") ?? "rounded",
-      messageFontSize: game.settings.get(MODULE_ID, "messageFontSize") ?? 26,
-      messageColor: game.settings.get(MODULE_ID, "messageColor") ?? "#ffd700"
-    };
-  }
-
-  _slideHTML(slide, opts) {
-    if (slide.type === "message") return buildMessageHTML(slide.message, opts);
-    const view = getActorViewData(slide.actor);
-    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
-    return buildCardHTML(view, fieldConfig, opts);
   }
 
   _initHpCache() {
@@ -346,14 +312,16 @@ export class OverlayController {
       this.popup.focus();
       return;
     }
-    const width = game.settings.get(MODULE_ID, "bannerWidth") ?? 960;
-    const height = game.settings.get(MODULE_ID, "bannerHeight") ?? 120;
-    this.popup = window.open("", "pcstats-overlay", `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`);
+    const cfg = this.cfg();
+    const width = num(cfg.bannerWidth, 960);
+    const height = num(cfg.bannerHeight, 120);
+    this.popup = window.open("", OVERLAYS[this.key].windowName,
+      `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`);
     if (!this.popup) {
       ui.notifications.error(game.i18n.localize("PCSTATS.PopupBlocked"));
       return;
     }
-    this._writeSkeleton();
+    this._writeSkeleton(cfg);
     this.index = 0;
     this.animating = false;
     this.eventQueue = [];
@@ -368,40 +336,56 @@ export class OverlayController {
     this.popup = null;
   }
 
-  _writeSkeleton() {
-    const theme = game.settings.get(MODULE_ID, "theme") ?? "plain";
-    const parchment = theme === "parchment";
-    const bg = game.settings.get(MODULE_ID, "bgColor") ?? "#00ff00";
-    const textColor = game.settings.get(MODULE_ID, "textColor") ?? "#ffffff";
-    const cardEnabled = game.settings.get(MODULE_ID, "cardEnabled") ?? false;
-    const cardColor = game.settings.get(MODULE_ID, "cardColor") ?? "#000000";
-    const cardOpacity = game.settings.get(MODULE_ID, "cardOpacity") ?? 0.6;
-    const cardRadius = game.settings.get(MODULE_ID, "cardRadius") ?? 16;
+  _dynamicCss(cfg) {
+    const serif = cfg.fontFamily === "serif";
+    const bodyFont = serif
+      ? `"IM Fell English", Georgia, "Times New Roman", serif`
+      : `"Signika", "Helvetica Neue", Arial, sans-serif`;
+    const dispFont = serif ? `"Cinzel", Georgia, serif` : bodyFont;
 
-    const fieldGap = game.settings.get(MODULE_ID, "fieldGap") ?? 18;
-    const padX = game.settings.get(MODULE_ID, "paddingX") ?? 22;
-    const padY = game.settings.get(MODULE_ID, "paddingY") ?? 12;
+    const a = Math.clamp(num(cfg.cardOpacity, 1), 0, 1);
+    const bg = cfg.cardEnabled
+      ? `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`
+      : "transparent";
+    const border = cfg.borderEnabled ? `${num(cfg.borderWidth, 2)}px solid ${cfg.borderColor}` : "none";
+    const shadow = cfg.cardEnabled
+      ? "box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);"
+      : "";
+    const textShadow = cfg.cardEnabled ? "none" : "0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)";
 
-    let cardStyle = `gap:${Number(fieldGap) || 0}px;padding:${Number(padY) || 0}px ${Number(padX) || 0}px;`;
-    // The parchment theme draws its own plate; only the plain theme honours the
-    // solid-background-bar setting via inline styles.
-    if (cardEnabled && !parchment) {
-      cardStyle += `background:${hexToRgba(cardColor, cardOpacity)};border-radius:${Number(cardRadius) || 0}px;`;
-    }
+    const gap = num(cfg.fieldGap, 18);
+    const padX = num(cfg.paddingX, 22);
+    const padY = num(cfg.paddingY, 12);
+    const fadeMs = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
 
-    const body = this.layoutMode === "party"
+    return `
+      body { font-family: ${bodyFont}; text-shadow: ${textShadow}; }
+      .pcs-name, .pcs-message { font-family: ${dispFont}; }
+      #pcs-card { gap: ${gap}px; padding: ${padY}px ${padX}px; transition: opacity ${fadeMs}ms ease-in-out; }
+      .pcs-plate { gap: ${gap}px; padding: ${padY}px ${padX}px; }
+      .pcs-card-bg {
+        background: ${bg};
+        border: ${border};
+        border-radius: ${num(cfg.cardRadius, 8)}px;
+        ${shadow}
+      }
+    `;
+  }
+
+  _writeSkeleton(cfg = this.cfg()) {
+    const serif = cfg.fontFamily === "serif";
+    const fonts = serif ? FONT_LINKS : "";
+    const css = BASE_CSS + this._dynamicCss(cfg);
+
+    const body = this.mode === "party"
       ? `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`
-      : `<div id="pcs-root"><div id="pcs-card" style="${cardStyle}"></div></div>`;
-
-    const fonts = parchment ? FONT_LINKS : "";
-    const css = BASE_CSS + (parchment ? PARCHMENT_CSS : "");
-    const bodyClass = parchment ? "pcs-theme-parchment" : "";
+      : `<div id="pcs-root"><div id="pcs-card" class="pcs-card-bg"></div></div>`;
 
     const doc = this.popup.document;
     doc.open();
     doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>PC Stats Overlay</title>${fonts}<style>${css}</style></head>
-      <body class="${bodyClass}" style="background:${esc(bg)};color:${esc(textColor)}">
+      <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">
         ${body}
       </body></html>`);
     doc.close();
@@ -409,7 +393,7 @@ export class OverlayController {
 
   render() {
     if (!this.isOpen || this.animating) return;
-    if (this.layoutMode === "party") this._renderParty();
+    if (this.mode === "party") this._renderParty();
     else this._renderCarousel();
   }
 
@@ -417,44 +401,48 @@ export class OverlayController {
     const card = this.popup.document.getElementById("pcs-card");
     if (!card) return;
 
-    const slides = this.getSlides();
+    const cfg = this.cfg();
+    const slides = this.getSlides(cfg);
     if (!slides.length) {
       card.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
       return;
     }
 
     if (this.index >= slides.length) this.index = 0;
-    const html = this._slideHTML(slides[this.index], this._readOpts());
+    const slide = slides[this.index];
+    const html = slide.type === "message"
+      ? buildMessageHTML(slide.message, cfg)
+      : buildCardHTML(getActorViewData(slide.actor), cfg);
 
+    const fadeMs = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
     card.style.opacity = "0";
     this.popup.setTimeout(() => {
       const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
       if (!c || this.animating) return;
       c.innerHTML = html;
       c.style.opacity = "1";
-    }, FADE_MS);
+    }, fadeMs);
   }
 
   _renderParty() {
     const party = this.popup.document.getElementById("pcs-party");
     if (!party) return;
 
-    const actors = this.getActors();
+    const cfg = this.cfg();
+    const actors = this.getActors(cfg);
     if (!actors.length) {
       party.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
       return;
     }
 
-    const opts = this._readOpts();
-    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
     party.innerHTML = actors.map(a => {
-      const parts = buildFieldParts(getActorViewData(a), fieldConfig, opts);
-      return `<div class="pcs-plate" data-actor-id="${esc(a.id)}">${parts.join("")}</div>`;
+      const parts = buildFieldParts(getActorViewData(a), cfg);
+      return `<div class="pcs-plate pcs-card-bg" data-actor-id="${esc(a.id)}">${parts.join("")}</div>`;
     }).join("");
   }
 
   advance() {
-    if (this.animating || this.layoutMode === "party") return;
+    if (this.animating || this.mode === "party") return;
     const slides = this.getSlides();
     if (slides.length <= 1) return;
     this.index = (this.index + 1) % slides.length;
@@ -463,8 +451,8 @@ export class OverlayController {
 
   startRotation() {
     this.stopRotation();
-    if (this.layoutMode === "party") return;
-    const interval = Number(game.settings.get(MODULE_ID, "rotateInterval")) || 0;
+    if (this.mode === "party") return;
+    const interval = num(this.cfg().rotateInterval, 0);
     if (interval > 0) {
       this.rotateTimer = setInterval(() => this.advance(), interval * 1000);
     }
@@ -482,17 +470,17 @@ export class OverlayController {
   onUpdateActor(actor, changes) {
     if (!this.isOpen) return;
 
+    const cfg = this.cfg();
     const hpChanged = foundry.utils.hasProperty(changes, "system.attributes.hp.value");
     const newVal = actor.system?.attributes?.hp?.value ?? null;
     const oldVal = this.hpCache.get(actor.id);
     const max = actor.system?.attributes?.hp?.max ?? null;
     if (newVal != null) this.hpCache.set(actor.id, newVal);
 
-    const animEnabled = game.settings.get(MODULE_ID, "combatAnimations") ?? true;
     const inCombat = !!(game.combat && game.combat.started);
-    const selected = this.getActors().some(a => a.id === actor.id);
+    const selected = (cfg.selectedActors ?? []).includes(actor.id);
 
-    if (hpChanged && animEnabled && inCombat && selected
+    if (hpChanged && cfg.combatAnimations && inCombat && selected
       && oldVal != null && newVal != null && newVal !== oldVal) {
       const event = { actorId: actor.id, delta: newVal - oldVal, oldHp: oldVal, newHp: newVal, max };
       if (this.animating) this.eventQueue.push(event);
@@ -505,7 +493,7 @@ export class OverlayController {
 
   playEvent(event) {
     if (!this.isOpen) return;
-    if (this.layoutMode === "party") this._playEventParty(event);
+    if (this.mode === "party") this._playEventParty(event);
     else this._playEventCarousel(event);
   }
 
@@ -517,15 +505,11 @@ export class OverlayController {
     const actor = game.actors.get(event.actorId);
     if (!card || !actor) { this.finishEvent(); return; }
 
-    // Snap straight to the hit character (no fade) and render their current card.
-    const view = getActorViewData(actor);
-    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
     card.style.opacity = "1";
-    card.innerHTML = buildCardHTML(view, fieldConfig, this._readOpts());
-
+    card.innerHTML = buildCardHTML(getActorViewData(actor), this.cfg());
     this._flashTarget(card, event);
 
-    const dur = (Number(game.settings.get(MODULE_ID, "combatAnimDuration")) || 3) * 1000;
+    const dur = num(this.cfg().combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
   }
 
@@ -538,10 +522,9 @@ export class OverlayController {
       : null;
     if (!plate) { this.finishEvent(); return; }
 
-    // The plate is already on screen showing the old HP — flash it in place.
     this._flashTarget(plate, event);
 
-    const dur = (Number(game.settings.get(MODULE_ID, "combatAnimDuration")) || 3) * 1000;
+    const dur = num(this.cfg().combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
   }
 
@@ -590,7 +573,7 @@ export class OverlayController {
     this.startRotation();
   }
 
-  // Re-read settings and reapply everything (called after config changes).
+  // Re-read config and reapply everything (called after the config window saves).
   reload() {
     if (!this.isOpen) return;
     this.animating = false;

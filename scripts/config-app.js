@@ -1,4 +1,4 @@
-import { MODULE_ID, FIELD_DEFS } from "./constants.js";
+import { MODULE_ID, FIELD_DEFS, OVERLAYS, defaultOverlayConfig } from "./constants.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -11,7 +11,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       icon: "fa-solid fa-sliders",
       resizable: true
     },
-    position: { width: 660, height: "auto" },
+    position: { width: 680, height: "auto" },
     form: {
       handler: OverlayConfigApp.#onSubmit,
       closeOnSubmit: true
@@ -23,20 +23,23 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  async _prepareContext() {
-    const selected = new Set(game.settings.get(MODULE_ID, "selectedActors"));
+  #preparePane(key) {
+    const mode = OVERLAYS[key].mode;
+    const stored = game.settings.get(MODULE_ID, `${key}Config`) ?? {};
+    const cfg = foundry.utils.mergeObject(defaultOverlayConfig(mode), stored, { inplace: false });
+
+    const selected = new Set(cfg.selectedActors ?? []);
     const actors = game.actors
       .filter(a => a.type === "character")
       .map(a => ({ id: a.id, name: a.name, img: a.img, selected: selected.has(a.id) }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const saved = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
-    const byKey = Object.fromEntries(saved.map(f => [f.key, f]));
+    const byKey = Object.fromEntries((cfg.fieldConfig ?? []).map(f => [f.key, f]));
     const fields = Object.entries(FIELD_DEFS)
-      .map(([key, label], i) => {
-        const f = byKey[key] ?? { enabled: true, fontSize: 18, order: i, colorEnabled: false, color: "" };
+      .map(([fkey, label], i) => {
+        const f = byKey[fkey] ?? { enabled: true, fontSize: 18, order: i, colorEnabled: false, color: "" };
         return {
-          key,
+          key: fkey,
           label,
           enabled: f.enabled,
           fontSize: f.fontSize,
@@ -44,75 +47,57 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
           colorEnabled: !!f.colorEnabled,
           color: f.color ?? "",
           colorValue: f.color || "#ffffff",
-          isPortrait: key === "portrait"
+          isPortrait: fkey === "portrait"
         };
       })
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-    const messages = (game.settings.get(MODULE_ID, "customMessages") ?? [])
+    const messages = (cfg.customMessages ?? [])
       .map((m, i) => ({ index: i, text: m.text ?? "", enabled: m.enabled !== false }));
 
-    const layoutMode = game.settings.get(MODULE_ID, "layoutMode");
-    const layoutModes = [
-      { value: "carousel", label: "PCSTATS.LayoutCarousel", selected: layoutMode === "carousel" },
-      { value: "party", label: "PCSTATS.LayoutParty", selected: layoutMode === "party" }
+    const fontFamilies = [
+      { value: "serif", label: "PCSTATS.FontSerif", selected: cfg.fontFamily !== "default" },
+      { value: "default", label: "PCSTATS.FontDefault", selected: cfg.fontFamily === "default" }
     ];
-
-    const theme = game.settings.get(MODULE_ID, "theme");
-    const themes = [
-      { value: "parchment", label: "PCSTATS.ThemeParchment", selected: theme === "parchment" },
-      { value: "plain", label: "PCSTATS.ThemePlain", selected: theme === "plain" }
-    ];
-
-    const portraitShape = game.settings.get(MODULE_ID, "portraitShape");
     const portraitShapes = [
-      { value: "rounded", label: "PCSTATS.ShapeRounded", selected: portraitShape === "rounded" },
-      { value: "circle", label: "PCSTATS.ShapeCircle", selected: portraitShape === "circle" },
-      { value: "square", label: "PCSTATS.ShapeSquare", selected: portraitShape === "square" }
+      { value: "rounded", label: "PCSTATS.ShapeRounded", selected: cfg.portraitShape === "rounded" },
+      { value: "circle", label: "PCSTATS.ShapeCircle", selected: cfg.portraitShape === "circle" },
+      { value: "square", label: "PCSTATS.ShapeSquare", selected: cfg.portraitShape === "square" }
     ];
 
     return {
+      key,
+      mode,
+      isBanner: mode === "carousel",
+      label: key === "banner" ? "PCSTATS.TabBanner" : "PCSTATS.TabParty",
+      hint: key === "banner" ? "PCSTATS.TabBannerHint" : "PCSTATS.TabPartyHint",
+      cfg,
       actors,
       fields,
-      layoutModes,
-      themes,
-      rotateInterval: game.settings.get(MODULE_ID, "rotateInterval"),
-      bgColor: game.settings.get(MODULE_ID, "bgColor"),
-      bannerWidth: game.settings.get(MODULE_ID, "bannerWidth"),
-      bannerHeight: game.settings.get(MODULE_ID, "bannerHeight"),
-      textColor: game.settings.get(MODULE_ID, "textColor"),
-      showHpBar: game.settings.get(MODULE_ID, "showHpBar"),
-      cardEnabled: game.settings.get(MODULE_ID, "cardEnabled"),
-      cardColor: game.settings.get(MODULE_ID, "cardColor"),
-      cardOpacity: game.settings.get(MODULE_ID, "cardOpacity"),
-      cardRadius: game.settings.get(MODULE_ID, "cardRadius"),
-      portraitSize: game.settings.get(MODULE_ID, "portraitSize"),
-      portraitShapes,
-      fieldGap: game.settings.get(MODULE_ID, "fieldGap"),
-      paddingX: game.settings.get(MODULE_ID, "paddingX"),
-      paddingY: game.settings.get(MODULE_ID, "paddingY"),
-      showDividers: game.settings.get(MODULE_ID, "showDividers"),
-      dividerColor: game.settings.get(MODULE_ID, "dividerColor"),
       messages,
-      messageFrequency: game.settings.get(MODULE_ID, "messageFrequency"),
-      messageFontSize: game.settings.get(MODULE_ID, "messageFontSize"),
-      messageColor: game.settings.get(MODULE_ID, "messageColor"),
-      combatAnimations: game.settings.get(MODULE_ID, "combatAnimations"),
-      combatAnimDuration: game.settings.get(MODULE_ID, "combatAnimDuration"),
+      fontFamilies,
+      portraitShapes
+    };
+  }
+
+  async _prepareContext() {
+    return {
+      panes: [this.#preparePane("banner"), this.#preparePane("party")],
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
     };
   }
 
-  static async #onSubmit(event, form, formData) {
-    const data = foundry.utils.expandObject(formData.object);
+  static #parsePane(paneData, mode) {
+    const data = paneData ?? {};
+    const cfg = defaultOverlayConfig(mode);
 
-    const selectedActors = Object.entries(data.actor ?? {})
+    cfg.selectedActors = Object.entries(data.actor ?? {})
       .filter(([, v]) => v)
       .map(([id]) => id);
 
-    const fieldConfig = Object.entries(data.field ?? {}).map(([key, v]) => ({
+    cfg.fieldConfig = Object.entries(data.field ?? {}).map(([key, v]) => ({
       key,
       enabled: !!v.enabled,
       fontSize: Number(v.fontSize) || 18,
@@ -121,49 +106,122 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       color: v.color || ""
     }));
 
-    await game.settings.set(MODULE_ID, "selectedActors", selectedActors);
-    await game.settings.set(MODULE_ID, "fieldConfig", fieldConfig);
-    await game.settings.set(MODULE_ID, "layoutMode", data.layoutMode === "party" ? "party" : "carousel");
-    await game.settings.set(MODULE_ID, "theme", data.theme === "plain" ? "plain" : "parchment");
-    await game.settings.set(MODULE_ID, "rotateInterval", Number(data.rotateInterval) || 0);
-    await game.settings.set(MODULE_ID, "bgColor", data.bgColor || "#00ff00");
-    await game.settings.set(MODULE_ID, "bannerWidth", Number(data.bannerWidth) || 960);
-    await game.settings.set(MODULE_ID, "bannerHeight", Number(data.bannerHeight) || 120);
-    await game.settings.set(MODULE_ID, "textColor", data.textColor || "#ffffff");
-    await game.settings.set(MODULE_ID, "showHpBar", !!data.showHpBar);
-    await game.settings.set(MODULE_ID, "cardEnabled", !!data.cardEnabled);
-    await game.settings.set(MODULE_ID, "cardColor", data.cardColor || "#000000");
-    await game.settings.set(MODULE_ID, "cardOpacity", Math.clamp(Number(data.cardOpacity ?? 0.6), 0, 1));
-    await game.settings.set(MODULE_ID, "cardRadius", Number(data.cardRadius) || 0);
-    await game.settings.set(MODULE_ID, "portraitSize", Number(data.portraitSize) || 120);
-    await game.settings.set(MODULE_ID, "portraitShape", data.portraitShape || "rounded");
-    await game.settings.set(MODULE_ID, "fieldGap", Number(data.fieldGap) || 0);
-    await game.settings.set(MODULE_ID, "paddingX", Number(data.paddingX) || 0);
-    await game.settings.set(MODULE_ID, "paddingY", Number(data.paddingY) || 0);
-    await game.settings.set(MODULE_ID, "showDividers", !!data.showDividers);
-    await game.settings.set(MODULE_ID, "dividerColor", data.dividerColor || "#ffffff");
+    cfg.fontFamily = data.fontFamily === "default" ? "default" : "serif";
+    cfg.bgColor = data.bgColor || "#00ff00";
+    cfg.textColor = data.textColor || "#3a2a14";
+    cfg.showHpBar = !!data.showHpBar;
+    cfg.cardEnabled = !!data.cardEnabled;
+    cfg.cardColor = data.cardColor || "#ecdcb4";
+    cfg.cardOpacity = Math.clamp(Number(data.cardOpacity ?? 1), 0, 1);
+    cfg.cardRadius = Number(data.cardRadius) || 0;
+    cfg.borderEnabled = !!data.borderEnabled;
+    cfg.borderColor = data.borderColor || "#b08d3c";
+    cfg.borderWidth = Number(data.borderWidth) || 0;
+    cfg.portraitSize = Number(data.portraitSize) || 90;
+    cfg.portraitShape = data.portraitShape || "rounded";
+    cfg.fieldGap = Number(data.fieldGap) || 0;
+    cfg.paddingX = Number(data.paddingX) || 0;
+    cfg.paddingY = Number(data.paddingY) || 0;
+    cfg.showDividers = !!data.showDividers;
+    cfg.dividerColor = data.dividerColor || "#b08d3c";
+    cfg.bannerWidth = Number(data.bannerWidth) || 960;
+    cfg.bannerHeight = Number(data.bannerHeight) || 120;
+    cfg.combatAnimations = !!data.combatAnimations;
+    cfg.combatAnimDuration = Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15);
 
-    const customMessages = Object.values(data.message ?? {})
+    // Carousel/banner-only options.
+    cfg.rotateInterval = Number(data.rotateInterval) || 0;
+    cfg.cardTransition = Math.clamp(Number(data.cardTransition ?? 0.25), 0, 5);
+    cfg.customMessages = Object.values(data.message ?? {})
       .map(m => ({ text: String(m?.text ?? "").trim(), enabled: !!m?.enabled }))
       .filter(m => m.text !== "");
-    await game.settings.set(MODULE_ID, "customMessages", customMessages);
-    await game.settings.set(MODULE_ID, "messageFrequency", Number(data.messageFrequency) || 0);
-    await game.settings.set(MODULE_ID, "messageFontSize", Number(data.messageFontSize) || 26);
-    await game.settings.set(MODULE_ID, "messageColor", data.messageColor || "#ffd700");
-    await game.settings.set(MODULE_ID, "combatAnimations", !!data.combatAnimations);
-    await game.settings.set(MODULE_ID, "combatAnimDuration", Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15));
+    cfg.messageFrequency = Number(data.messageFrequency) || 0;
+    cfg.messageFontSize = Number(data.messageFontSize) || 26;
+    cfg.messageColor = data.messageColor || "#5a3a16";
 
-    game.modules.get(MODULE_ID).api?.controller?.reload();
+    return cfg;
+  }
+
+  static async #onSubmit(event, form, formData) {
+    const data = foundry.utils.expandObject(formData.object);
+
+    await game.settings.set(MODULE_ID, "bannerConfig", OverlayConfigApp.#parsePane(data.banner, "carousel"));
+    await game.settings.set(MODULE_ID, "partyConfig", OverlayConfigApp.#parsePane(data.party, "party"));
+
+    const api = game.modules.get(MODULE_ID).api;
+    api?.controllers?.banner?.reload();
+    api?.controllers?.party?.reload();
   }
 
   _onRender(context, options) {
     super._onRender?.(context, options);
+    this.#wireTabs();
+    this.#wireResetButtons();
 
-    this.#wireMessageList();
+    for (const tbody of this.element.querySelectorAll(".pcs-field-rows")) {
+      this.#wireDrag(tbody);
+    }
+    for (const list of this.element.querySelectorAll(".pcs-msg-rows")) {
+      this.#wireMessageList(list);
+    }
+  }
 
-    const tbody = this.element.querySelector(".pcs-field-rows");
-    if (!tbody) return;
+  #wireTabs() {
+    const tabs = [...this.element.querySelectorAll(".pcs-tab")];
+    const panes = [...this.element.querySelectorAll(".pcs-pane")];
+    for (const tab of tabs) {
+      tab.addEventListener("click", () => {
+        const key = tab.dataset.tab;
+        tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === key));
+        panes.forEach(p => p.classList.toggle("active", p.dataset.pane === key));
+      });
+    }
+  }
 
+  #wireResetButtons() {
+    for (const btn of this.element.querySelectorAll(".pcs-reset")) {
+      btn.addEventListener("click", async () => {
+        const key = btn.dataset.reset;
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+          window: { title: game.i18n.localize("PCSTATS.ResetTitle") },
+          content: `<p>${game.i18n.localize("PCSTATS.ResetConfirm")}</p>`
+        });
+        if (!confirmed) return;
+        await game.settings.set(MODULE_ID, `${key}Config`, defaultOverlayConfig(OVERLAYS[key].mode));
+        game.modules.get(MODULE_ID).api?.controllers?.[key]?.reload();
+        this.render();
+      });
+    }
+  }
+
+  #wireMessageList(list) {
+    const pane = list.closest(".pcs-pane");
+    const paneKey = pane?.dataset.pane ?? "banner";
+    const addBtn = pane?.querySelector(".pcs-msg-add");
+    let counter = list.querySelectorAll(".pcs-msg-row").length;
+
+    addBtn?.addEventListener("click", () => {
+      const idx = counter++;
+      const row = document.createElement("div");
+      row.className = "pcs-msg-row";
+      row.innerHTML = `
+        <input type="checkbox" name="${paneKey}.message.${idx}.enabled" checked>
+        <input type="text" name="${paneKey}.message.${idx}.text" value=""
+          placeholder="${game.i18n.localize("PCSTATS.MessagePlaceholder")}">
+        <button type="button" class="pcs-msg-remove" title="${game.i18n.localize("PCSTATS.RemoveMessage")}">
+          <i class="fa-solid fa-trash"></i>
+        </button>`;
+      list.appendChild(row);
+      row.querySelector('input[type="text"]')?.focus();
+    });
+
+    list.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".pcs-msg-remove");
+      if (btn) btn.closest(".pcs-msg-row")?.remove();
+    });
+  }
+
+  #wireDrag(tbody) {
     let dragRow = null;
 
     for (const row of tbody.querySelectorAll(".pcs-field-row")) {
@@ -186,35 +244,6 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const after = this.#rowAfter(tbody, ev.clientY);
       if (after === null) tbody.appendChild(dragRow);
       else tbody.insertBefore(dragRow, after);
-    });
-  }
-
-  #wireMessageList() {
-    const list = this.element.querySelector(".pcs-msg-rows");
-    const addBtn = this.element.querySelector(".pcs-msg-add");
-    if (!list) return;
-
-    // Continue numbering past whatever rows already exist so names stay unique.
-    let counter = list.querySelectorAll(".pcs-msg-row").length;
-
-    addBtn?.addEventListener("click", () => {
-      const idx = counter++;
-      const row = document.createElement("div");
-      row.className = "pcs-msg-row";
-      row.innerHTML = `
-        <input type="checkbox" name="message.${idx}.enabled" checked>
-        <input type="text" name="message.${idx}.text" value=""
-          placeholder="${game.i18n.localize("PCSTATS.MessagePlaceholder")}">
-        <button type="button" class="pcs-msg-remove" title="${game.i18n.localize("PCSTATS.RemoveMessage")}">
-          <i class="fa-solid fa-trash"></i>
-        </button>`;
-      list.appendChild(row);
-      row.querySelector('input[type="text"]')?.focus();
-    });
-
-    list.addEventListener("click", (ev) => {
-      const btn = ev.target.closest(".pcs-msg-remove");
-      if (btn) btn.closest(".pcs-msg-row")?.remove();
     });
   }
 

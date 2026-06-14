@@ -1,194 +1,26 @@
-import { MODULE_ID, defaultFieldConfig } from "./constants.js";
+import { MODULE_ID, defaultOverlayConfig } from "./constants.js";
 import { OverlayConfigApp } from "./config-app.js";
 
 export function registerSettings() {
-  game.settings.register(MODULE_ID, "selectedActors", {
+  game.settings.register(MODULE_ID, "bannerConfig", {
     scope: "world",
     config: false,
-    type: Array,
-    default: []
+    type: Object,
+    default: defaultOverlayConfig("carousel")
   });
 
-  game.settings.register(MODULE_ID, "fieldConfig", {
+  game.settings.register(MODULE_ID, "partyConfig", {
     scope: "world",
     config: false,
-    type: Array,
-    default: defaultFieldConfig()
+    type: Object,
+    default: defaultOverlayConfig("party")
   });
 
-  game.settings.register(MODULE_ID, "layoutMode", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "carousel"
-  });
-
-  game.settings.register(MODULE_ID, "theme", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "parchment"
-  });
-
-  game.settings.register(MODULE_ID, "rotateInterval", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 8
-  });
-
-  game.settings.register(MODULE_ID, "customMessages", {
-    scope: "world",
-    config: false,
-    type: Array,
-    default: []
-  });
-
-  game.settings.register(MODULE_ID, "messageFrequency", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 3
-  });
-
-  game.settings.register(MODULE_ID, "messageFontSize", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 26
-  });
-
-  game.settings.register(MODULE_ID, "messageColor", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "#ffd700"
-  });
-
-  game.settings.register(MODULE_ID, "combatAnimations", {
-    scope: "world",
-    config: false,
-    type: Boolean,
-    default: true
-  });
-
-  game.settings.register(MODULE_ID, "combatAnimDuration", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 3
-  });
-
-  game.settings.register(MODULE_ID, "bgColor", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "#00ff00"
-  });
-
-  game.settings.register(MODULE_ID, "bannerWidth", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 960
-  });
-
-  game.settings.register(MODULE_ID, "bannerHeight", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 120
-  });
-
-  game.settings.register(MODULE_ID, "textColor", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "#ffffff"
-  });
-
-  game.settings.register(MODULE_ID, "showHpBar", {
-    scope: "world",
-    config: false,
-    type: Boolean,
-    default: true
-  });
-
-  game.settings.register(MODULE_ID, "cardEnabled", {
+  game.settings.register(MODULE_ID, "configMigrated", {
     scope: "world",
     config: false,
     type: Boolean,
     default: false
-  });
-
-  game.settings.register(MODULE_ID, "cardColor", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "#000000"
-  });
-
-  game.settings.register(MODULE_ID, "cardOpacity", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 0.6
-  });
-
-  game.settings.register(MODULE_ID, "cardRadius", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 16
-  });
-
-  game.settings.register(MODULE_ID, "portraitSize", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 90
-  });
-
-  game.settings.register(MODULE_ID, "portraitShape", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "rounded"
-  });
-
-  game.settings.register(MODULE_ID, "fieldGap", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 18
-  });
-
-  game.settings.register(MODULE_ID, "paddingX", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 22
-  });
-
-  game.settings.register(MODULE_ID, "paddingY", {
-    scope: "world",
-    config: false,
-    type: Number,
-    default: 8
-  });
-
-  game.settings.register(MODULE_ID, "showDividers", {
-    scope: "world",
-    config: false,
-    type: Boolean,
-    default: false
-  });
-
-  game.settings.register(MODULE_ID, "dividerColor", {
-    scope: "world",
-    config: false,
-    type: String,
-    default: "#ffffff"
   });
 
   game.settings.registerMenu(MODULE_ID, "configMenu", {
@@ -199,4 +31,61 @@ export function registerSettings() {
     type: OverlayConfigApp,
     restricted: true
   });
+}
+
+// One-time migration from the old flat (single-overlay) settings into the two
+// independent config objects. Content/structure (actors, fields, messages,
+// combat) carries over; appearance colors take the new parchment defaults so the
+// migrated overlays match the look the theme used to force at runtime.
+export async function migrateSettings() {
+  if (game.settings.get(MODULE_ID, "configMigrated")) return;
+
+  const old = readRawSettings();
+  const banner = defaultOverlayConfig("carousel");
+  const party = defaultOverlayConfig("party");
+
+  const carryBoth = ["selectedActors", "fieldConfig", "showHpBar",
+    "portraitShape", "bgColor", "combatAnimations", "combatAnimDuration"];
+  for (const k of carryBoth) {
+    if (old[k] !== undefined) { banner[k] = old[k]; party[k] = old[k]; }
+  }
+
+  // Sizing, rotation, and sponsor messages only carry to the banner; the party
+  // row keeps its own wide/short defaults.
+  const carryBanner = ["portraitSize", "fieldGap", "paddingX", "paddingY",
+    "bannerWidth", "bannerHeight", "rotateInterval", "customMessages",
+    "messageFrequency", "messageFontSize"];
+  for (const k of carryBanner) {
+    if (old[k] !== undefined) banner[k] = old[k];
+  }
+
+  await game.settings.set(MODULE_ID, "bannerConfig", banner);
+  await game.settings.set(MODULE_ID, "partyConfig", party);
+  await game.settings.set(MODULE_ID, "configMigrated", true);
+  console.log(`${MODULE_ID} | migrated old settings into banner/party configs`);
+}
+
+// Read the old flat settings straight from world storage (they are no longer
+// registered, so game.settings.get would throw). Defensive: any failure just
+// yields an empty object and the configs fall back to defaults.
+function readRawSettings() {
+  const out = {};
+  try {
+    const world = game.settings.storage.get("world");
+    const prefix = `${MODULE_ID}.`;
+    for (const setting of world) {
+      const key = setting.key ?? "";
+      if (!key.startsWith(prefix)) continue;
+      const short = key.slice(prefix.length);
+      const raw = setting.value;
+      try {
+        out[short] = typeof raw === "string" ? JSON.parse(raw) : raw;
+      } catch {
+        out[short] = raw;
+      }
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not read old settings for migration`, err);
+  }
+  return out;
 }

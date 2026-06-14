@@ -20,6 +20,47 @@
   flex: 0 0 auto;
 }
 
+.pcs-config .pcs-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--color-border-light-tertiary, #999);
+  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  background: var(--color-bg, #f0f0e0);
+  z-index: 2;
+}
+
+.pcs-config .pcs-tab {
+  padding: 6px 16px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+}
+
+.pcs-config .pcs-tab.active {
+  border-color: var(--color-border-light-tertiary, #999);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.pcs-config .pcs-pane {
+  display: none;
+}
+
+.pcs-config .pcs-pane.active {
+  display: block;
+}
+
+.pcs-config .pcs-reset-section {
+  margin-top: 8px;
+}
+
+.pcs-config .pcs-reset {
+  width: auto;
+}
+
 .pcs-config section {
   margin-bottom: 12px;
 }
@@ -94,7 +135,6 @@
   gap: 6px;
 }
 
-.pcs-config .pcs-layout .form-group,
 .pcs-config .pcs-appearance .form-group,
 .pcs-config .pcs-general .form-group,
 .pcs-config .pcs-messages .form-group,
@@ -105,7 +145,6 @@
   margin: 4px 0;
 }
 
-.pcs-config .pcs-layout .form-group label,
 .pcs-config .pcs-appearance .form-group label,
 .pcs-config .pcs-general .form-group label,
 .pcs-config .pcs-messages .form-group label,
