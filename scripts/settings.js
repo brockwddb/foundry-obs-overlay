@@ -16,6 +16,13 @@ export function registerSettings() {
     default: defaultOverlayConfig("party")
   });
 
+  game.settings.register(MODULE_ID, "verticalConfig", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: defaultOverlayConfig("vertical")
+  });
+
   game.settings.register(MODULE_ID, "configMigrated", {
     scope: "world",
     config: false,
@@ -43,11 +50,12 @@ export async function migrateSettings() {
   const old = readRawSettings();
   const banner = defaultOverlayConfig("carousel");
   const party = defaultOverlayConfig("party");
+  const vertical = defaultOverlayConfig("vertical");
 
   const carryBoth = ["selectedActors", "fieldConfig", "showHpBar",
     "portraitShape", "bgColor", "combatAnimations", "combatAnimDuration"];
   for (const k of carryBoth) {
-    if (old[k] !== undefined) { banner[k] = old[k]; party[k] = old[k]; }
+    if (old[k] !== undefined) { banner[k] = old[k]; party[k] = old[k]; vertical[k] = old[k]; }
   }
 
   // Sizing, rotation, and sponsor messages only carry to the banner; the party
@@ -61,6 +69,7 @@ export async function migrateSettings() {
 
   await game.settings.set(MODULE_ID, "bannerConfig", banner);
   await game.settings.set(MODULE_ID, "partyConfig", party);
+  await game.settings.set(MODULE_ID, "verticalConfig", vertical);
   await game.settings.set(MODULE_ID, "configMigrated", true);
   console.log(`${MODULE_ID} | migrated old settings into banner/party configs`);
 }

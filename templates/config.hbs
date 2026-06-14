@@ -79,6 +79,18 @@
           <input type="checkbox" name="{{this.key}}.showHpBar" {{checked this.cfg.showHpBar}}>
         </div>
         <div class="form-group">
+          <label>{{localize "PCSTATS.HpBarLow"}}</label>
+          <input type="color" name="{{this.key}}.hpBarLow" value="{{this.cfg.hpBarLow}}">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.HpBarHigh"}}</label>
+          <input type="color" name="{{this.key}}.hpBarHigh" value="{{this.cfg.hpBarHigh}}">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.HpBarBg"}}</label>
+          <input type="color" name="{{this.key}}.hpBarBg" value="{{this.cfg.hpBarBg}}">
+        </div>
+        <div class="form-group">
           <label>{{localize "PCSTATS.CardEnabled"}}</label>
           <input type="checkbox" name="{{this.key}}.cardEnabled" {{checked this.cfg.cardEnabled}}>
         </div>
@@ -200,6 +212,14 @@
           <div class="form-group">
             <label>{{localize "PCSTATS.RotateInterval"}}</label>
             <input type="number" name="{{this.key}}.rotateInterval" value="{{this.cfg.rotateInterval}}" min="0" step="0.5">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.CardAnimation"}}</label>
+            <select name="{{this.key}}.cardAnimation">
+              {{#each this.cardAnimations}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+              {{/each}}
+            </select>
           </div>
           <div class="form-group">
             <label>{{localize "PCSTATS.CardTransition"}}</label>

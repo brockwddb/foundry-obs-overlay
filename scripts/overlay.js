@@ -26,6 +26,14 @@ const BASE_CSS = `
     display: flex;
     align-items: center;
     justify-content: center;
+    perspective: 1200px;
+  }
+  /* Scale wrapper carries the fit-to-box transform so the card itself is free
+     to run transition/flash animations on its own transform. */
+  #pcs-scale {
+    display: inline-flex;
+    transform-origin: center center;
+    perspective: 1200px;
   }
   #pcs-card {
     position: relative;
@@ -45,6 +53,16 @@ const BASE_CSS = `
     padding: 6px 12px 10px;
     box-sizing: border-box;
     transform-origin: center bottom;
+  }
+  /* Vertical-bar layout: plates stacked in a column. */
+  #pcs-root.pcs-vertical-root { align-items: center; justify-content: center; }
+  #pcs-party.pcs-vertical {
+    width: auto;
+    height: 100%;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+    transform-origin: center center;
   }
   .pcs-plate {
     position: relative;
@@ -79,13 +97,11 @@ const BASE_CSS = `
     height: 0.55em;
     margin-top: 4px;
     border-radius: 4px;
-    background: rgba(0,0,0,0.35);
     overflow: hidden;
   }
   .pcs-hpbar > span {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, #9b2d20, #6f9b3a);
     transform-origin: left center;
   }
   .pcs-abilities { display: flex; gap: 12px; }
@@ -137,6 +153,20 @@ const BASE_CSS = `
   }
   .pcs-flash-damage { animation: pcs-flash-damage 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
   .pcs-flash-heal { animation: pcs-flash-heal 0.9s ease-out; }
+
+  /* Card transition animations (banner) */
+  @keyframes pcs-fade-out { to { opacity: 0; } }
+  @keyframes pcs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pcs-slide-out { to { opacity: 0; transform: translateX(-45px); } }
+  @keyframes pcs-slide-in { from { opacity: 0; transform: translateX(45px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes pcs-slidev-out { to { opacity: 0; transform: translateY(-40px); } }
+  @keyframes pcs-slidev-in { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pcs-wipe-out { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(0 0 0 100%); } }
+  @keyframes pcs-wipe-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes pcs-zoom-out { to { opacity: 0; transform: scale(0.7); } }
+  @keyframes pcs-zoom-in { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+  @keyframes pcs-flip-out { to { opacity: 0; transform: rotateY(90deg); } }
+  @keyframes pcs-flip-in { from { opacity: 0; transform: rotateY(-90deg); } to { opacity: 1; transform: rotateY(0); } }
 `;
 
 function esc(str) {
@@ -195,8 +225,9 @@ function renderField(f, view, cfg) {
     case "hp": {
       if (view.hp.value === null && view.hp.max === null) return "";
       const temp = view.hp.temp ? ` (+${esc(view.hp.temp)})` : "";
+      const fill = `background:linear-gradient(90deg, ${esc(cfg.hpBarLow)}, ${esc(cfg.hpBarHigh)});transform:scaleX(${(view.hp.pct / 100).toFixed(3)})`;
       const bar = cfg.showHpBar
-        ? `<div class="pcs-hpbar"><span style="transform:scaleX(${(view.hp.pct / 100).toFixed(3)})"></span></div>`
+        ? `<div class="pcs-hpbar" style="background:${esc(cfg.hpBarBg)}"><span style="${fill}"></span></div>`
         : "";
       return `<div class="pcs-field" ${fs}>HP <span class="pcs-hp-value">${esc(view.hp.value)}</span>/${esc(view.hp.max)}${temp}${bar}</div>`;
     }
@@ -358,12 +389,11 @@ export class OverlayController {
     const gap = num(cfg.fieldGap, 18);
     const padX = num(cfg.paddingX, 22);
     const padY = num(cfg.paddingY, 12);
-    const fadeMs = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
 
     return `
       body { font-family: ${bodyFont}; text-shadow: ${textShadow}; }
       .pcs-name, .pcs-message { font-family: ${dispFont}; }
-      #pcs-card { gap: ${gap}px; padding: ${padY}px ${padX}px; transition: opacity ${fadeMs}ms ease-in-out; }
+      #pcs-card { gap: ${gap}px; padding: ${padY}px ${padX}px; }
       .pcs-plate { gap: ${gap}px; padding: ${padY}px ${padX}px; }
       .pcs-card-bg {
         background: ${bg};
@@ -379,9 +409,14 @@ export class OverlayController {
     const fonts = serif ? FONT_LINKS : "";
     const css = BASE_CSS + this._dynamicCss(cfg);
 
-    const body = this.mode === "party"
-      ? `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`
-      : `<div id="pcs-root"><div id="pcs-card" class="pcs-card-bg"></div></div>`;
+    let body;
+    if (this.mode === "carousel") {
+      body = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="pcs-card-bg"></div></div></div>`;
+    } else if (this.mode === "vertical") {
+      body = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical"></div></div>`;
+    } else {
+      body = `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`;
+    }
 
     const doc = this.popup.document;
     doc.open();
@@ -395,8 +430,8 @@ export class OverlayController {
 
   render() {
     if (!this.isOpen || this.animating) return;
-    if (this.mode === "party") this._renderParty();
-    else this._renderCarousel();
+    if (this.mode === "carousel") this._renderCarousel();
+    else this._renderParty();
   }
 
   // When maxWidth/maxHeight are set, scale the whole composition (fonts,
@@ -420,7 +455,23 @@ export class OverlayController {
     el.style.transform = `scale(${factor.toFixed(4)})`;
   }
 
-  _renderCarousel() {
+  _scaleEl() {
+    return this.popup.document.getElementById("pcs-scale");
+  }
+
+  _animateCardOut(card, anim, dur) {
+    if (anim === "none" || dur <= 0) { card.style.opacity = "0"; return; }
+    card.style.animation = `pcs-${anim}-out ${dur}ms ease forwards`;
+  }
+
+  _animateCardIn(card, anim, dur) {
+    if (anim === "none" || dur <= 0) { card.style.animation = ""; card.style.opacity = "1"; return; }
+    card.style.animation = `pcs-${anim}-in ${dur}ms ease forwards`;
+  }
+
+  // skipOut: the card is already hidden (e.g. coming out of a blank gap), so
+  // just swap content and animate the new card in.
+  _renderCarousel(skipOut = false) {
     const card = this.popup.document.getElementById("pcs-card");
     if (!card) return;
 
@@ -428,6 +479,7 @@ export class OverlayController {
     const slides = this.getSlides(cfg);
     if (!slides.length) {
       card.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
+      this._applyScale(this._scaleEl(), cfg);
       return;
     }
 
@@ -437,15 +489,23 @@ export class OverlayController {
       ? buildMessageHTML(slide.message, cfg)
       : buildCardHTML(getActorViewData(slide.actor), cfg);
 
-    const fadeMs = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
-    card.style.opacity = "0";
-    this.popup.setTimeout(() => {
+    const anim = cfg.cardAnimation || "fade";
+    const dur = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
+
+    const swap = () => {
       const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
       if (!c || this.animating) return;
       c.innerHTML = html;
-      this._applyScale(c, cfg);
-      c.style.opacity = "1";
-    }, fadeMs);
+      this._applyScale(this._scaleEl(), cfg);
+      this._animateCardIn(c, anim, dur);
+    };
+
+    if (skipOut || anim === "none" || dur <= 0) {
+      swap();
+      return;
+    }
+    this._animateCardOut(card, anim, dur);
+    this.popup.setTimeout(swap, dur);
   }
 
   _renderParty() {
@@ -466,12 +526,16 @@ export class OverlayController {
     this._applyScale(party, cfg);
   }
 
-  advance() {
-    if (this.animating || this.mode === "party") return;
+  _advanceIndex() {
     const slides = this.getSlides();
-    if (slides.length <= 1) return;
+    if (slides.length <= 1) return false;
     this.index = (this.index + 1) % slides.length;
-    this.render();
+    return true;
+  }
+
+  advance() {
+    if (this.animating || this.mode !== "carousel") return;
+    if (this._advanceIndex()) this._renderCarousel();
   }
 
   // Rotation runs as a self-rescheduling chain so we can insert an optional
@@ -479,7 +543,7 @@ export class OverlayController {
   // next card -> display -> ...
   startRotation() {
     this.stopRotation();
-    if (this.mode === "party") return;
+    if (this.mode !== "carousel") return;
     const cfg = this.cfg();
     const display = num(cfg.rotateInterval, 0);
     if (display <= 0) return;
@@ -496,10 +560,12 @@ export class OverlayController {
     const gap = num(cfg.cardGap, 0);
     if (gap > 0) {
       const card = this.popup.document.getElementById("pcs-card");
-      if (card) card.style.opacity = "0"; // blank the banner during the gap
+      const anim = cfg.cardAnimation || "fade";
+      const dur = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
+      if (card) this._animateCardOut(card, anim, dur); // animate out, then blank during the gap
       this.rotateTimer = setTimeout(() => {
         if (!this.isOpen || this.animating) return;
-        this.advance();
+        if (this._advanceIndex()) this._renderCarousel(true); // card already hidden
         this.rotateTimer = setTimeout(() => this._rotateTick(), num(this.cfg().rotateInterval, 0) * 1000);
       }, gap * 1000);
     } else {
@@ -545,8 +611,8 @@ export class OverlayController {
   playEvent(event) {
     if (!this.isOpen) return;
     this._lastEventActorId = event.actorId;
-    if (this.mode === "party") this._playEventParty(event);
-    else this._playEventCarousel(event);
+    if (this.mode === "carousel") this._playEventCarousel(event);
+    else this._playEventParty(event);
   }
 
   _playEventCarousel(event) {
@@ -558,9 +624,10 @@ export class OverlayController {
     if (!card || !actor) { this.finishEvent(); return; }
 
     const cfg = this.cfg();
+    card.style.animation = ""; // drop any lingering transition animation
     card.style.opacity = "1";
     card.innerHTML = buildCardHTML(getActorViewData(actor), cfg);
-    this._applyScale(card, cfg);
+    this._applyScale(this._scaleEl(), cfg);
     this._flashTarget(card, event);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
@@ -585,6 +652,7 @@ export class OverlayController {
   // Apply the flash/shake, floating number, and HP count-up/down to one element.
   _flashTarget(el, event) {
     const isHeal = event.delta > 0;
+    el.style.animation = ""; // let the class-based flash animation take over
     el.classList.remove("pcs-flash-damage", "pcs-flash-heal");
     void el.offsetWidth; // restart the CSS animation
     el.classList.add(isHeal ? "pcs-flash-heal" : "pcs-flash-damage");

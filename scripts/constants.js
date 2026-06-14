@@ -22,17 +22,22 @@ export function defaultFieldConfig() {
   }));
 }
 
-// The two independent overlays the module can run at once.
+// The independent overlays the module can run at once.
 export const OVERLAYS = {
   banner: { mode: "carousel", windowName: "pcstats-banner" },
-  party: { mode: "party", windowName: "pcstats-party" }
+  party: { mode: "party", windowName: "pcstats-party" },
+  vertical: { mode: "vertical", windowName: "pcstats-vertical" }
 };
+
+// Selectable card transition animations (banner/carousel only).
+export const CARD_ANIMATIONS = ["fade", "slide", "slidev", "wipe", "zoom", "flip", "none"];
 
 // One self-contained config object per overlay. The defaults ARE the parchment
 // "default theme" — rendering reads these values directly, so everything here is
 // editable in the config window and "Reset to defaults" restores this object.
 export function defaultOverlayConfig(mode = "carousel") {
-  const party = mode === "party";
+  const vertical = mode === "vertical";
+  const plates = mode === "party" || vertical; // multi-character layouts
   return {
     selectedActors: [],
     fieldConfig: defaultFieldConfig(),
@@ -40,6 +45,9 @@ export function defaultOverlayConfig(mode = "carousel") {
     bgColor: "#00ff00",
     textColor: "#3a2a14",
     showHpBar: true,
+    hpBarLow: "#9b2d20",
+    hpBarHigh: "#6f9b3a",
+    hpBarBg: "#2a2018",
     cardEnabled: true,
     cardColor: "#ecdcb4",
     cardOpacity: 1,
@@ -47,17 +55,17 @@ export function defaultOverlayConfig(mode = "carousel") {
     borderEnabled: true,
     borderColor: "#b08d3c",
     borderWidth: 2,
-    portraitSize: party ? 64 : 90,
+    portraitSize: plates ? 64 : 90,
     portraitShape: "rounded",
-    fieldGap: party ? 6 : 18,
-    paddingX: party ? 12 : 22,
+    fieldGap: plates ? 6 : 18,
+    paddingX: plates ? 12 : 22,
     paddingY: 8,
     showDividers: false,
     dividerColor: "#b08d3c",
     maxWidth: 0,
     maxHeight: 0,
-    bannerWidth: party ? 1600 : 960,
-    bannerHeight: party ? 150 : 120,
+    bannerWidth: vertical ? 360 : (mode === "party" ? 1600 : 960),
+    bannerHeight: vertical ? 900 : (mode === "party" ? 150 : 120),
     combatAnimations: true,
     animationsCombatOnly: true,
     combatAnimDuration: 3,
@@ -65,6 +73,7 @@ export function defaultOverlayConfig(mode = "carousel") {
     rotateInterval: 8,
     cardTransition: 0.25,
     cardGap: 0,
+    cardAnimation: "fade",
     customMessages: [],
     messageFrequency: 3,
     messageFontSize: 26,

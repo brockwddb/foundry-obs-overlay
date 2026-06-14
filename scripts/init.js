@@ -11,18 +11,22 @@ Hooks.once("ready", async () => {
 
   const banner = new OverlayController("banner");
   const party = new OverlayController("party");
+  const vertical = new OverlayController("vertical");
   banner.registerHooks();
   party.registerHooks();
+  vertical.registerHooks();
 
   const mod = game.modules.get(MODULE_ID);
   mod.api = {
-    controllers: { banner, party },
+    controllers: { banner, party, vertical },
     // Back-compat: bare open/close act on the banner.
     controller: banner,
     openBanner: () => banner.open(),
     closeBanner: () => banner.close(),
     openParty: () => party.open(),
     closeParty: () => party.close(),
+    openVertical: () => vertical.open(),
+    closeVertical: () => vertical.close(),
     openOverlay: () => banner.open(),
     closeOverlay: () => banner.close()
   };
@@ -51,5 +55,14 @@ Hooks.on("getSceneControlButtons", (controls) => {
     button: true,
     onClick: () => game.modules.get(MODULE_ID).api?.openParty(),
     onChange: () => game.modules.get(MODULE_ID).api?.openParty()
+  };
+
+  tokenControl.tools.pcStatsVertical = {
+    name: "pcStatsVertical",
+    title: "PCSTATS.OpenVertical",
+    icon: "fa-solid fa-grip-lines-vertical",
+    button: true,
+    onClick: () => game.modules.get(MODULE_ID).api?.openVertical(),
+    onChange: () => game.modules.get(MODULE_ID).api?.openVertical()
   };
 });
