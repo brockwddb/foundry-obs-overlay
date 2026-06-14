@@ -49,6 +49,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
+    const messages = (game.settings.get(MODULE_ID, "customMessages") ?? [])
+      .map((m, i) => ({ index: i, text: m.text ?? "", enabled: m.enabled !== false }));
+
     const portraitShape = game.settings.get(MODULE_ID, "portraitShape");
     const portraitShapes = [
       { value: "rounded", label: "PCSTATS.ShapeRounded", selected: portraitShape === "rounded" },
@@ -75,6 +78,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       paddingY: game.settings.get(MODULE_ID, "paddingY"),
       showDividers: game.settings.get(MODULE_ID, "showDividers"),
       dividerColor: game.settings.get(MODULE_ID, "dividerColor"),
+      messages,
+      messageFrequency: game.settings.get(MODULE_ID, "messageFrequency"),
+      messageFontSize: game.settings.get(MODULE_ID, "messageFontSize"),
+      messageColor: game.settings.get(MODULE_ID, "messageColor"),
+      combatAnimations: game.settings.get(MODULE_ID, "combatAnimations"),
+      combatAnimDuration: game.settings.get(MODULE_ID, "combatAnimDuration"),
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
@@ -116,11 +125,24 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     await game.settings.set(MODULE_ID, "showDividers", !!data.showDividers);
     await game.settings.set(MODULE_ID, "dividerColor", data.dividerColor || "#ffffff");
 
+    const customMessages = Object.values(data.message ?? {})
+      .map(m => ({ text: String(m?.text ?? "").trim(), enabled: !!m?.enabled }))
+      .filter(m => m.text !== "");
+    await game.settings.set(MODULE_ID, "customMessages", customMessages);
+    await game.settings.set(MODULE_ID, "messageFrequency", Number(data.messageFrequency) || 0);
+    await game.settings.set(MODULE_ID, "messageFontSize", Number(data.messageFontSize) || 26);
+    await game.settings.set(MODULE_ID, "messageColor", data.messageColor || "#ffd700");
+    await game.settings.set(MODULE_ID, "combatAnimations", !!data.combatAnimations);
+    await game.settings.set(MODULE_ID, "combatAnimDuration", Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15));
+
     game.modules.get(MODULE_ID).api?.controller?.reload();
   }
 
   _onRender(context, options) {
     super._onRender?.(context, options);
+
+    this.#wireMessageList();
+
     const tbody = this.element.querySelector(".pcs-field-rows");
     if (!tbody) return;
 
@@ -146,6 +168,35 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const after = this.#rowAfter(tbody, ev.clientY);
       if (after === null) tbody.appendChild(dragRow);
       else tbody.insertBefore(dragRow, after);
+    });
+  }
+
+  #wireMessageList() {
+    const list = this.element.querySelector(".pcs-msg-rows");
+    const addBtn = this.element.querySelector(".pcs-msg-add");
+    if (!list) return;
+
+    // Continue numbering past whatever rows already exist so names stay unique.
+    let counter = list.querySelectorAll(".pcs-msg-row").length;
+
+    addBtn?.addEventListener("click", () => {
+      const idx = counter++;
+      const row = document.createElement("div");
+      row.className = "pcs-msg-row";
+      row.innerHTML = `
+        <input type="checkbox" name="message.${idx}.enabled" checked>
+        <input type="text" name="message.${idx}.text" value=""
+          placeholder="${game.i18n.localize("PCSTATS.MessagePlaceholder")}">
+        <button type="button" class="pcs-msg-remove" title="${game.i18n.localize("PCSTATS.RemoveMessage")}">
+          <i class="fa-solid fa-trash"></i>
+        </button>`;
+      list.appendChild(row);
+      row.querySelector('input[type="text"]')?.focus();
+    });
+
+    list.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".pcs-msg-remove");
+      if (btn) btn.closest(".pcs-msg-row")?.remove();
     });
   }
 

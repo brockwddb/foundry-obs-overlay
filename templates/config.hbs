@@ -110,6 +110,46 @@
     </div>
   </section>
 
+  <section class="pcs-messages">
+    <h3>{{localize "PCSTATS.Messages"}}</h3>
+    <p class="notes">{{localize "PCSTATS.MessagesHint"}}</p>
+    <div class="pcs-msg-rows">
+      {{#each messages}}
+        <div class="pcs-msg-row">
+          <input type="checkbox" name="message.{{this.index}}.enabled" {{checked this.enabled}}>
+          <input type="text" name="message.{{this.index}}.text" value="{{this.text}}" placeholder="{{localize "PCSTATS.MessagePlaceholder"}}">
+          <button type="button" class="pcs-msg-remove" title="{{localize "PCSTATS.RemoveMessage"}}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      {{/each}}
+    </div>
+    <button type="button" class="pcs-msg-add"><i class="fa-solid fa-plus"></i> {{localize "PCSTATS.AddMessage"}}</button>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.MessageFrequency"}}</label>
+      <input type="number" name="messageFrequency" value="{{messageFrequency}}" min="0" max="20" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.MessageFontSize"}}</label>
+      <input type="number" name="messageFontSize" value="{{messageFontSize}}" min="6" max="120" step="1">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.MessageColor"}}</label>
+      <input type="color" name="messageColor" value="{{messageColor}}">
+    </div>
+  </section>
+
+  <section class="pcs-combat">
+    <h3>{{localize "PCSTATS.Combat"}}</h3>
+    <p class="notes">{{localize "PCSTATS.CombatHint"}}</p>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CombatAnimations"}}</label>
+      <input type="checkbox" name="combatAnimations" {{checked combatAnimations}}>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.CombatAnimDuration"}}</label>
+      <input type="number" name="combatAnimDuration" value="{{combatAnimDuration}}" min="1" max="15" step="0.5">
+    </div>
+  </section>
+
   <section class="pcs-general">
     <h3>{{localize "PCSTATS.General"}}</h3>
     <div class="form-group">

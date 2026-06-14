@@ -23,6 +23,48 @@ export function registerSettings() {
     default: 8
   });
 
+  game.settings.register(MODULE_ID, "customMessages", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: []
+  });
+
+  game.settings.register(MODULE_ID, "messageFrequency", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 3
+  });
+
+  game.settings.register(MODULE_ID, "messageFontSize", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 26
+  });
+
+  game.settings.register(MODULE_ID, "messageColor", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "#ffd700"
+  });
+
+  game.settings.register(MODULE_ID, "combatAnimations", {
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true
+  });
+
+  game.settings.register(MODULE_ID, "combatAnimDuration", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 3
+  });
+
   game.settings.register(MODULE_ID, "bgColor", {
     scope: "world",
     config: false,
@@ -34,7 +76,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Number,
-    default: 220
+    default: 120
   });
 
   game.settings.register(MODULE_ID, "textColor", {
@@ -83,7 +125,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Number,
-    default: 120
+    default: 90
   });
 
   game.settings.register(MODULE_ID, "portraitShape", {
@@ -111,7 +153,7 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Number,
-    default: 12
+    default: 8
   });
 
   game.settings.register(MODULE_ID, "showDividers", {

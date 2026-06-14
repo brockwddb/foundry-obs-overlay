@@ -23,6 +23,7 @@ const OVERLAY_CSS = `
     justify-content: center;
   }
   #pcs-card {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 18px;
@@ -45,6 +46,7 @@ const OVERLAY_CSS = `
   }
   .pcs-field { line-height: 1.15; white-space: nowrap; }
   .pcs-name { font-weight: 700; }
+  .pcs-message { font-weight: 700; text-align: center; white-space: nowrap; letter-spacing: 0.5px; }
   .pcs-hpbar {
     position: relative;
     width: 100%;
@@ -67,6 +69,49 @@ const OVERLAY_CSS = `
   .pcs-conditions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .pcs-condition { display: flex; align-items: center; gap: 4px; }
   .pcs-condition img { height: 1.1em; width: 1.1em; }
+
+  /* Combat hit / heal animation */
+  .pcs-hit {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.4em;
+    font-weight: 900;
+    pointer-events: none;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.9);
+    animation: pcs-hit-float 1.4s ease-out forwards;
+    z-index: 5;
+  }
+  .pcs-hit-damage { color: #ff4d4d; }
+  .pcs-hit-heal { color: #56e06a; }
+  @keyframes pcs-hit-float {
+    0%   { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
+    15%  { opacity: 1; transform: translate(-50%, -18px) scale(1.15); }
+    70%  { opacity: 1; transform: translate(-50%, -34px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -60px) scale(0.95); }
+  }
+  @keyframes pcs-shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-7px); }
+    30% { transform: translateX(7px); }
+    45% { transform: translateX(-5px); }
+    60% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+    90% { transform: translateX(3px); }
+  }
+  @keyframes pcs-flash-damage {
+    0%   { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+    25%  { filter: drop-shadow(0 0 14px rgba(255,40,40,0.95)); }
+    100% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+  }
+  @keyframes pcs-flash-heal {
+    0%   { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+    25%  { filter: drop-shadow(0 0 14px rgba(60,220,90,0.95)); }
+    100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
+  }
+  .pcs-flash-damage { animation: pcs-flash-damage 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
+  .pcs-flash-heal { animation: pcs-flash-heal 0.9s ease-out; }
 `;
 
 function esc(str) {
@@ -108,7 +153,7 @@ function renderField(f, view, opts) {
       const bar = opts.showHpBar
         ? `<div class="pcs-hpbar"><span style="transform:scaleX(${(view.hp.pct / 100).toFixed(3)})"></span></div>`
         : "";
-      return `<div class="pcs-field" ${fs}>HP ${esc(view.hp.value)}/${esc(view.hp.max)}${temp}${bar}</div>`;
+      return `<div class="pcs-field" ${fs}>HP <span class="pcs-hp-value">${esc(view.hp.value)}</span>/${esc(view.hp.max)}${temp}${bar}</div>`;
     }
     case "ac":
       return view.ac === null ? "" : `<div class="pcs-field" ${fs}>AC ${esc(view.ac)}</div>`;
@@ -145,12 +190,21 @@ function buildCardHTML(view, fieldConfig, opts) {
   return parts.join("");
 }
 
+function buildMessageHTML(message, opts) {
+  let s = `font-size:${Number(opts.messageFontSize) || 26}px;`;
+  if (opts.messageColor) s += `color:${opts.messageColor};`;
+  return `<div class="pcs-field pcs-message" style="${s}">${esc(message.text)}</div>`;
+}
+
 export class OverlayController {
   constructor() {
     this.popup = null;
     this.index = 0;
     this.rotateTimer = null;
     this._hookIds = [];
+    this.animating = false;
+    this.eventQueue = [];
+    this.hpCache = new Map();
   }
 
   get isOpen() {
@@ -162,12 +216,69 @@ export class OverlayController {
     return ids.map(id => game.actors.get(id)).filter(a => a);
   }
 
+  getMessages() {
+    const msgs = game.settings.get(MODULE_ID, "customMessages") ?? [];
+    return msgs.filter(m => m && m.enabled && String(m.text ?? "").trim() !== "");
+  }
+
+  // Build the carousel queue: character slides with sponsor/custom messages
+  // sprinkled in at the configured frequency.
+  getSlides() {
+    const actors = this.getActors().map(a => ({ type: "actor", actor: a }));
+    const messages = this.getMessages().map(m => ({ type: "message", message: m }));
+    if (!messages.length) return actors;
+    if (!actors.length) return messages;
+
+    const freq = Number(game.settings.get(MODULE_ID, "messageFrequency")) || 0;
+    if (freq <= 0) return actors;
+
+    const out = [];
+    let mi = 0;
+    actors.forEach((slide, i) => {
+      out.push(slide);
+      if ((i + 1) % freq === 0) {
+        out.push(messages[mi % messages.length]);
+        mi++;
+      }
+    });
+    // Fewer characters than the frequency: still show the messages once per cycle.
+    if (mi === 0) out.push(...messages);
+    return out;
+  }
+
+  _readOpts() {
+    return {
+      showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true,
+      showDividers: game.settings.get(MODULE_ID, "showDividers") ?? false,
+      dividerColor: game.settings.get(MODULE_ID, "dividerColor") ?? "#ffffff",
+      portraitSize: game.settings.get(MODULE_ID, "portraitSize") ?? 120,
+      portraitShape: game.settings.get(MODULE_ID, "portraitShape") ?? "rounded",
+      messageFontSize: game.settings.get(MODULE_ID, "messageFontSize") ?? 26,
+      messageColor: game.settings.get(MODULE_ID, "messageColor") ?? "#ffd700"
+    };
+  }
+
+  _slideHTML(slide, opts) {
+    if (slide.type === "message") return buildMessageHTML(slide.message, opts);
+    const view = getActorViewData(slide.actor);
+    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
+    return buildCardHTML(view, fieldConfig, opts);
+  }
+
+  _initHpCache() {
+    this.hpCache = new Map();
+    for (const a of this.getActors()) {
+      const v = a.system?.attributes?.hp?.value;
+      if (v != null) this.hpCache.set(a.id, v);
+    }
+  }
+
   open() {
     if (this.isOpen) {
       this.popup.focus();
       return;
     }
-    const height = game.settings.get(MODULE_ID, "bannerHeight") ?? 220;
+    const height = game.settings.get(MODULE_ID, "bannerHeight") ?? 120;
     this.popup = window.open("", "pcstats-overlay", `width=960,height=${height},menubar=no,toolbar=no,location=no,status=no`);
     if (!this.popup) {
       ui.notifications.error(game.i18n.localize("PCSTATS.PopupBlocked"));
@@ -175,6 +286,9 @@ export class OverlayController {
     }
     this._writeSkeleton();
     this.index = 0;
+    this.animating = false;
+    this.eventQueue = [];
+    this._initHpCache();
     this.render();
     this.startRotation();
   }
@@ -213,41 +327,33 @@ export class OverlayController {
   }
 
   render() {
-    if (!this.isOpen) return;
-    const actors = this.getActors();
+    if (!this.isOpen || this.animating) return;
     const card = this.popup.document.getElementById("pcs-card");
     if (!card) return;
 
-    if (!actors.length) {
+    const slides = this.getSlides();
+    if (!slides.length) {
       card.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
       return;
     }
 
-    if (this.index >= actors.length) this.index = 0;
-    const view = getActorViewData(actors[this.index]);
-    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
-    const opts = {
-      showHpBar: game.settings.get(MODULE_ID, "showHpBar") ?? true,
-      showDividers: game.settings.get(MODULE_ID, "showDividers") ?? false,
-      dividerColor: game.settings.get(MODULE_ID, "dividerColor") ?? "#ffffff",
-      portraitSize: game.settings.get(MODULE_ID, "portraitSize") ?? 120,
-      portraitShape: game.settings.get(MODULE_ID, "portraitShape") ?? "rounded"
-    };
-    const html = buildCardHTML(view, fieldConfig, opts);
+    if (this.index >= slides.length) this.index = 0;
+    const html = this._slideHTML(slides[this.index], this._readOpts());
 
     card.style.opacity = "0";
     this.popup.setTimeout(() => {
       const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
-      if (!c) return;
+      if (!c || this.animating) return;
       c.innerHTML = html;
       c.style.opacity = "1";
     }, FADE_MS);
   }
 
   advance() {
-    const actors = this.getActors();
-    if (actors.length <= 1) return;
-    this.index = (this.index + 1) % actors.length;
+    if (this.animating) return;
+    const slides = this.getSlides();
+    if (slides.length <= 1) return;
+    this.index = (this.index + 1) % slides.length;
     this.render();
   }
 
@@ -266,18 +372,111 @@ export class OverlayController {
     }
   }
 
+  // --- Combat damage / heal animation -------------------------------------
+
+  onUpdateActor(actor, changes) {
+    if (!this.isOpen) return;
+
+    const hpChanged = foundry.utils.hasProperty(changes, "system.attributes.hp.value");
+    const newVal = actor.system?.attributes?.hp?.value ?? null;
+    const oldVal = this.hpCache.get(actor.id);
+    const max = actor.system?.attributes?.hp?.max ?? null;
+    if (newVal != null) this.hpCache.set(actor.id, newVal);
+
+    const animEnabled = game.settings.get(MODULE_ID, "combatAnimations") ?? true;
+    const inCombat = !!(game.combat && game.combat.started);
+    const selected = this.getActors().some(a => a.id === actor.id);
+
+    if (hpChanged && animEnabled && inCombat && selected
+      && oldVal != null && newVal != null && newVal !== oldVal) {
+      const event = { actorId: actor.id, delta: newVal - oldVal, oldHp: oldVal, newHp: newVal, max };
+      if (this.animating) this.eventQueue.push(event);
+      else this.playEvent(event);
+      return;
+    }
+
+    if (!this.animating) this.render();
+  }
+
+  playEvent(event) {
+    if (!this.isOpen) return;
+    this.animating = true;
+    this.stopRotation();
+
+    const card = this.popup.document.getElementById("pcs-card");
+    const actor = game.actors.get(event.actorId);
+    if (!card || !actor) { this.finishEvent(); return; }
+
+    // Snap straight to the hit character (no fade) and render their current card.
+    const view = getActorViewData(actor);
+    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
+    card.style.opacity = "1";
+    card.innerHTML = buildCardHTML(view, fieldConfig, this._readOpts());
+
+    const isHeal = event.delta > 0;
+    card.classList.remove("pcs-flash-damage", "pcs-flash-heal");
+    void card.offsetWidth; // restart the CSS animation
+    card.classList.add(isHeal ? "pcs-flash-heal" : "pcs-flash-damage");
+
+    const hit = this.popup.document.createElement("div");
+    hit.className = "pcs-hit " + (isHeal ? "pcs-hit-heal" : "pcs-hit-damage");
+    hit.textContent = (isHeal ? "+" : "−") + Math.abs(event.delta);
+    card.appendChild(hit);
+
+    this._animateHp(card, event.oldHp, event.newHp, event.max, 900);
+
+    const dur = (Number(game.settings.get(MODULE_ID, "combatAnimDuration")) || 3) * 1000;
+    this.popup.setTimeout(() => this.finishEvent(), dur);
+  }
+
+  _animateHp(card, from, to, max, duration) {
+    const win = this.popup;
+    const valueEl = card.querySelector(".pcs-hp-value");
+    const barEl = card.querySelector(".pcs-hpbar > span");
+    const setFrame = (cur) => {
+      if (valueEl) valueEl.textContent = String(cur);
+      if (barEl && max) barEl.style.transform = `scaleX(${Math.max(0, Math.min(1, cur / max)).toFixed(3)})`;
+    };
+    setFrame(from);
+    if (from === to) return;
+    const start = win.performance.now();
+    const tick = (now) => {
+      if (!this.isOpen) return;
+      const t = Math.min(1, (now - start) / duration);
+      setFrame(Math.round(from + (to - from) * t));
+      if (t < 1) win.requestAnimationFrame(tick);
+    };
+    win.requestAnimationFrame(tick);
+  }
+
+  finishEvent() {
+    if (this.eventQueue.length) {
+      this.playEvent(this.eventQueue.shift());
+      return;
+    }
+    this.animating = false;
+    this.render();
+    this.startRotation();
+  }
+
   // Re-read settings and reapply everything (called after config changes).
   reload() {
     if (!this.isOpen) return;
+    this.animating = false;
+    this.eventQueue = [];
     this._writeSkeleton();
-    if (this.index >= this.getActors().length) this.index = 0;
+    this._initHpCache();
+    if (this.index >= this.getSlides().length) this.index = 0;
     this.render();
     this.startRotation();
   }
 
   registerHooks() {
-    const refresh = () => { if (this.isOpen) this.render(); };
-    for (const hook of ["updateActor", "updateToken", "deleteActor",
+    this._hookIds.push(["updateActor",
+      Hooks.on("updateActor", (actor, changes) => this.onUpdateActor(actor, changes))]);
+
+    const refresh = () => { if (this.isOpen && !this.animating) this.render(); };
+    for (const hook of ["updateToken", "deleteActor",
       "createActiveEffect", "deleteActiveEffect", "updateActiveEffect", "updateCombat"]) {
       this._hookIds.push([hook, Hooks.on(hook, refresh)]);
     }
