@@ -59,9 +59,31 @@
 
 .pcs-config .pcs-reset-section {
   margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
-.pcs-config .pcs-reset {
+.pcs-config .pcs-reset,
+.pcs-config .pcs-test {
+  width: auto;
+}
+
+.pcs-config .pcs-tools {
+  margin-top: 14px;
+  border-top: 1px solid var(--color-border-light-tertiary, #999);
+  padding-top: 8px;
+}
+
+.pcs-config .pcs-tools .form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+
+.pcs-config .pcs-tools button,
+.pcs-config .pcs-tools select {
   width: auto;
 }
 

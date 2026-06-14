@@ -20,6 +20,7 @@ Hooks.once("ready", () => {
     controller: controllers.horizontalBanner, // back-compat
     open: (key) => controllers[key]?.open(),
     close: (key) => controllers[key]?.close(),
+    test: (key) => controllers[key]?.runTest(),
     openOverlay: () => controllers.horizontalBanner?.open(),
     closeOverlay: () => controllers.horizontalBanner?.close()
   };

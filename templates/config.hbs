@@ -140,6 +140,11 @@
           <input type="checkbox" name="{{this.key}}.plateEntrance" {{checked this.cfg.plateEntrance}}>
         </div>
         <div class="form-group">
+          <label>{{localize "PCSTATS.TextureUrl"}}</label>
+          <input type="text" class="pcs-texture-input" name="{{this.key}}.textureUrl" value="{{this.cfg.textureUrl}}" placeholder="{{localize "PCSTATS.MessageImage"}}">
+          <button type="button" class="pcs-texture-browse" title="{{localize "PCSTATS.Browse"}}"><i class="fa-solid fa-image"></i></button>
+        </div>
+        <div class="form-group">
           <label>{{localize "PCSTATS.BorderEnabled"}}</label>
           <input type="checkbox" name="{{this.key}}.borderEnabled" {{checked this.cfg.borderEnabled}}>
         </div>
@@ -323,6 +328,9 @@
       </section>
 
       <section class="pcs-reset-section">
+        <button type="button" class="pcs-test" data-test="{{this.key}}">
+          <i class="fa-solid fa-flask"></i> {{localize "PCSTATS.TestOverlay"}}
+        </button>
         <button type="button" class="pcs-reset" data-reset="{{this.key}}">
           <i class="fa-solid fa-rotate-left"></i> {{localize "PCSTATS.ResetDefaults"}}
         </button>
@@ -351,5 +359,27 @@
         <p class="notes">{{localize "PCSTATS.NoCharacterActors"}}</p>
       {{/each}}
     </div>
+
+    <section class="pcs-tools">
+      <h3>{{localize "PCSTATS.Tools"}}</h3>
+      <p class="notes">{{localize "PCSTATS.CopyHint"}}</p>
+      <div class="form-group">
+        <label>{{localize "PCSTATS.CopyFrom"}}</label>
+        <select class="pcs-copy-source">
+          {{#each panes}}<option value="{{this.key}}">{{localize this.label}}</option>{{/each}}
+        </select>
+        <label>{{localize "PCSTATS.CopyTo"}}</label>
+        <select class="pcs-copy-target">
+          {{#each panes}}<option value="{{this.key}}">{{localize this.label}}</option>{{/each}}
+        </select>
+        <button type="button" class="pcs-copy-apply">{{localize "PCSTATS.CopyApply"}}</button>
+      </div>
+      <p class="notes">{{localize "PCSTATS.ExportHint"}}</p>
+      <div class="form-group">
+        <button type="button" class="pcs-export"><i class="fa-solid fa-file-export"></i> {{localize "PCSTATS.Export"}}</button>
+        <button type="button" class="pcs-import"><i class="fa-solid fa-file-import"></i> {{localize "PCSTATS.Import"}}</button>
+        <input type="file" class="pcs-import-file" accept="application/json" style="display:none">
+      </div>
+    </section>
   </div>
 </div>

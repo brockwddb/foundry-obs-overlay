@@ -549,9 +549,13 @@ export class OverlayController {
     const dispFont = font.display ?? font.body;
 
     const a = Math.clamp(num(cfg.cardOpacity, 1), 0, 1);
-    const bg = cfg.cardEnabled
-      ? `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`
-      : "transparent";
+    const texture = String(cfg.textureUrl ?? "").replace(/["'()\\]/g, "");
+    let bg = "transparent";
+    if (cfg.cardEnabled) {
+      bg = texture
+        ? `url("${texture}") center/cover no-repeat`
+        : `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`;
+    }
     const border = cfg.borderEnabled ? `${num(cfg.borderWidth, 2)}px solid ${cfg.borderColor}` : "none";
     const shadow = (cfg.cardEnabled && cfg.plateShadow !== false)
       ? "box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);"
@@ -924,6 +928,28 @@ export class OverlayController {
       this.render();
       this.startRotation();
     }
+  }
+
+  // Fire a synthetic damage → heal → crit sequence so OBS can be set up
+  // without a live session. Uses the first selected character.
+  runTest() {
+    if (!this.isOpen) { ui.notifications?.warn(game.i18n.localize("PCSTATS.TestNotOpen")); return; }
+    const actors = this.getActors();
+    if (!actors.length) { ui.notifications?.warn(game.i18n.localize("PCSTATS.TestNoActor")); return; }
+    const actor = actors[0];
+    const v = getActorViewData(actor);
+    const max = v.hp.max ?? 20;
+    const cur = v.hp.value ?? max;
+    const dmg = Math.max(1, Math.round(max * 0.25));
+    const low = Math.max(0, cur - dmg);
+    const events = [
+      { kind: "hp", actorId: actor.id, delta: -dmg, oldHp: cur, newHp: low, max },
+      { kind: "hp", actorId: actor.id, delta: dmg, oldHp: low, newHp: cur, max },
+      { kind: "flair", actorId: actor.id, flair: "crit" }
+    ];
+    this.eventQueue.push(...events.slice(1));
+    if (this.animating) this.eventQueue.unshift(events[0]);
+    else this.playEvent(events[0]);
   }
 
   // Re-read config and reapply everything (called after the config window saves).

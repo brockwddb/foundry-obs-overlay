@@ -172,6 +172,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.cardRadius = Number(data.cardRadius) || 0;
     cfg.plateShadow = !!data.plateShadow;
     cfg.plateEntrance = !!data.plateEntrance;
+    cfg.textureUrl = String(data.textureUrl ?? "").trim();
     cfg.borderEnabled = !!data.borderEnabled;
     cfg.borderColor = data.borderColor || "#b08d3c";
     cfg.borderWidth = Number(data.borderWidth) || 0;
@@ -243,6 +244,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     super._onRender?.(context, options);
     this.#wireTabs();
     this.#wireResetButtons();
+    this.#wireTools();
 
     for (const tbody of this.element.querySelectorAll(".pcs-field-rows")) {
       this.#wireDrag(tbody);
@@ -250,6 +252,83 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     for (const list of this.element.querySelectorAll(".pcs-msg-rows")) {
       this.#wireMessageList(list);
     }
+    for (const btn of this.element.querySelectorAll(".pcs-test")) {
+      btn.addEventListener("click", () => game.modules.get(MODULE_ID).api?.test(btn.dataset.test));
+    }
+    for (const btn of this.element.querySelectorAll(".pcs-texture-browse")) {
+      btn.addEventListener("click", () => {
+        OverlayConfigApp.#pickImage(btn.parentElement?.querySelector(".pcs-texture-input"));
+      });
+    }
+  }
+
+  static #pickImage(input) {
+    const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+    if (!input || !FP) return;
+    new FP({ type: "image", current: input.value, callback: (path) => { input.value = path; } }).render(true);
+  }
+
+  #wireTools() {
+    const root = this.element;
+    const L = (k) => game.i18n.localize(k);
+
+    root.querySelector(".pcs-copy-apply")?.addEventListener("click", async () => {
+      const src = root.querySelector(".pcs-copy-source")?.value;
+      const tgt = root.querySelector(".pcs-copy-target")?.value;
+      if (!src || !tgt || src === tgt) return;
+      const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: L("PCSTATS.CopyApply") },
+        content: `<p>${L("PCSTATS.CopyConfirm")}</p>`
+      });
+      if (!ok) return;
+      const srcCfg = game.settings.get(MODULE_ID, `${src}Config`) ?? {};
+      const tgtCfg = foundry.utils.mergeObject(defaultOverlayConfig(tgt),
+        game.settings.get(MODULE_ID, `${tgt}Config`) ?? {}, { inplace: false });
+      const merged = foundry.utils.mergeObject(tgtCfg, srcCfg, { inplace: false });
+      // Keep the target's own characters and window dimensions.
+      merged.selectedActors = tgtCfg.selectedActors;
+      merged.bannerWidth = tgtCfg.bannerWidth;
+      merged.bannerHeight = tgtCfg.bannerHeight;
+      await game.settings.set(MODULE_ID, `${tgt}Config`, merged);
+      game.modules.get(MODULE_ID).api?.controllers?.[tgt]?.reload();
+      this.render();
+    });
+
+    root.querySelector(".pcs-export")?.addEventListener("click", () => {
+      const data = {
+        module: MODULE_ID,
+        version: game.modules.get(MODULE_ID)?.version ?? "",
+        configs: {},
+        characterStyles: game.settings.get(MODULE_ID, "characterStyles") ?? {},
+        accessRole: game.settings.get(MODULE_ID, "accessRole")
+      };
+      for (const key of OVERLAY_KEYS) data.configs[key] = game.settings.get(MODULE_ID, `${key}Config`);
+      const save = foundry.utils.saveDataToFile ?? globalThis.saveDataToFile;
+      save(JSON.stringify(data, null, 2), "application/json", "pcstats-overlay-config.json");
+    });
+
+    const fileInput = root.querySelector(".pcs-import-file");
+    root.querySelector(".pcs-import")?.addEventListener("click", () => fileInput?.click());
+    fileInput?.addEventListener("change", async (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        for (const key of OVERLAY_KEYS) {
+          if (data.configs?.[key]) await game.settings.set(MODULE_ID, `${key}Config`, data.configs[key]);
+        }
+        if (data.characterStyles) await game.settings.set(MODULE_ID, "characterStyles", data.characterStyles);
+        if (typeof data.accessRole === "number") await game.settings.set(MODULE_ID, "accessRole", data.accessRole);
+        for (const key of OVERLAY_KEYS) game.modules.get(MODULE_ID).api?.controllers?.[key]?.reload();
+        ui.notifications?.info(L("PCSTATS.ImportDone"));
+        this.render();
+      } catch (err) {
+        ui.notifications?.error(L("PCSTATS.ImportFailed"));
+        console.error(`${MODULE_ID} | import failed`, err);
+      } finally {
+        ev.target.value = "";
+      }
+    });
   }
 
   #wireTabs() {
@@ -308,11 +387,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
       const browse = ev.target.closest(".pcs-msg-browse");
       if (browse) {
-        const input = browse.closest(".pcs-msg-row")?.querySelector(".pcs-msg-image");
-        const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
-        if (input && FP) {
-          new FP({ type: "image", current: input.value, callback: (path) => { input.value = path; } }).render(true);
-        }
+        OverlayConfigApp.#pickImage(browse.closest(".pcs-msg-row")?.querySelector(".pcs-msg-image"));
       }
     });
   }

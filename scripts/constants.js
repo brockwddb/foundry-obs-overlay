@@ -98,6 +98,7 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     cardRadius: 8,
     plateShadow: true,
     plateEntrance: true,
+    textureUrl: "",
     borderEnabled: true,
     borderColor: "#b08d3c",
     borderWidth: 2,
