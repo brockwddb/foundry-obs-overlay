@@ -39,14 +39,22 @@ const BASE_CSS = `
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 18px;
     padding: 12px 22px;
+    max-width: calc(100vw - 10px);
+    box-sizing: border-box;
   }
-  /* Vertical card: same rotating card, fields stacked in a column. */
+  /* Vertical card: same rotating card, fields stacked in a column. Fills the
+     window width so long fields wrap instead of clipping. */
   #pcs-card.pcs-card-col {
     flex-direction: column;
+    flex-wrap: nowrap;
     align-items: center;
     text-align: center;
+    width: calc(100vw - 10px);
+    box-sizing: border-box;
   }
   #pcs-card.pcs-card-col .pcs-divider {
     width: auto;
@@ -83,6 +91,8 @@ const BASE_CSS = `
     align-items: center;
     gap: 4px;
     padding: 8px 12px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .pcs-plate .pcs-field { text-align: center; }
   .pcs-plate .pcs-hpbar { min-width: 90px; }
@@ -99,9 +109,9 @@ const BASE_CSS = `
     border-radius: 2px;
     opacity: 0.6;
   }
-  .pcs-field { line-height: 1.15; white-space: nowrap; }
-  .pcs-name { font-weight: 700; }
-  .pcs-message { font-weight: 700; text-align: center; white-space: nowrap; letter-spacing: 0.5px; }
+  .pcs-field { line-height: 1.15; white-space: nowrap; min-width: 0; max-width: 100%; }
+  .pcs-name { font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
+  .pcs-message { font-weight: 700; text-align: center; white-space: normal; overflow-wrap: anywhere; letter-spacing: 0.5px; }
   .pcs-hpbar {
     position: relative;
     width: 100%;
@@ -116,7 +126,7 @@ const BASE_CSS = `
     inset: 0;
     transform-origin: left center;
   }
-  .pcs-abilities { display: flex; gap: 12px; }
+  .pcs-abilities { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   .pcs-ability { text-align: center; }
   .pcs-ability b { display: block; font-size: 0.7em; opacity: 0.85; }
   .pcs-conditions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -136,8 +146,7 @@ const BASE_CSS = `
     animation: pcs-hit-float 1.4s ease-out forwards;
     z-index: 5;
   }
-  .pcs-hit-damage { color: #a01e12; }
-  .pcs-hit-heal { color: #3f7d28; }
+  /* .pcs-hit colors are set inline from config (damageColor / healColor). */
   @keyframes pcs-hit-float {
     0%   { opacity: 0; transform: translate(-50%, 0) scale(0.5); }
     15%  { opacity: 1; transform: translate(-50%, -18px) scale(1.15); }
@@ -153,18 +162,13 @@ const BASE_CSS = `
     75% { transform: translateX(-3px); }
     90% { transform: translateX(3px); }
   }
-  @keyframes pcs-flash-damage {
-    0%   { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
-    25%  { filter: drop-shadow(0 0 14px rgba(220,40,40,0.9)); }
-    100% { filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+  @keyframes pcs-flash {
+    0%   { filter: drop-shadow(0 0 0 transparent); }
+    25%  { filter: drop-shadow(0 0 14px var(--pcs-flash, rgba(220,40,40,0.9))); }
+    100% { filter: drop-shadow(0 0 0 transparent); }
   }
-  @keyframes pcs-flash-heal {
-    0%   { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-    25%  { filter: drop-shadow(0 0 14px rgba(60,180,90,0.9)); }
-    100% { filter: drop-shadow(0 0 0 rgba(0,255,0,0)); }
-  }
-  .pcs-flash-damage { animation: pcs-flash-damage 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
-  .pcs-flash-heal { animation: pcs-flash-heal 0.9s ease-out; }
+  .pcs-flash-damage { animation: pcs-flash 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
+  .pcs-flash-heal { animation: pcs-flash 0.9s ease-out; }
 
   /* Card transition animations (banner) */
   @keyframes pcs-fade-out { to { opacity: 0; } }
@@ -222,6 +226,15 @@ function fieldStyle(f) {
   return s;
 }
 
+// When "color HP by health" is on, pick the threshold color for the current %.
+function hpHealthColor(view, cfg) {
+  if (!cfg.hpColorByHealth) return "";
+  const pct = view.hp.pct;
+  if (pct <= num(cfg.hpLowThreshold, 25)) return cfg.hpLowColor || "";
+  if (pct <= num(cfg.hpMidThreshold, 50)) return cfg.hpMidColor || "";
+  return cfg.hpHighColor || "";
+}
+
 function renderField(f, view, cfg) {
   const fs = `style="${fieldStyle(f)}"`;
   switch (f.key) {
@@ -241,7 +254,9 @@ function renderField(f, view, cfg) {
       const bar = cfg.showHpBar
         ? `<div class="pcs-hpbar" style="background:${esc(cfg.hpBarBg)}"><span style="${fill}"></span></div>`
         : "";
-      return `<div class="pcs-field" ${fs}>HP <span class="pcs-hp-value">${esc(view.hp.value)}</span>/${esc(view.hp.max)}${temp}${bar}</div>`;
+      const healthColor = hpHealthColor(view, cfg);
+      const hpStyle = fieldStyle(f) + (healthColor ? `color:${healthColor};` : "");
+      return `<div class="pcs-field" style="${hpStyle}">HP <span class="pcs-hp-value">${esc(view.hp.value)}</span>/${esc(view.hp.max)}${temp}${bar}</div>`;
     }
     case "ac":
       return view.ac === null ? "" : `<div class="pcs-field" ${fs}>AC ${esc(view.ac)}</div>`;
@@ -291,7 +306,7 @@ function buildMessageHTML(message, cfg) {
 
 export class OverlayController {
   constructor(key) {
-    this.key = key;                       // "banner" | "verticalcard" | "party" | "vertical"
+    this.key = key;                       // horizontalBanner | verticalBanner | partyRow | partyColumn
     this.mode = OVERLAYS[key].mode;       // "carousel" | "party" | "vertical"
     this.column = !!OVERLAYS[key].column; // carousel laid out as a vertical card
     this.popup = null;
@@ -432,10 +447,11 @@ export class OverlayController {
       body = `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`;
     }
 
+    const title = OVERLAYS[this.key].windowTitle ?? "PC Stats Overlay";
     const doc = this.popup.document;
     doc.open();
     doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>PC Stats Overlay</title>${fonts}<style>${css}</style></head>
+      <title>${esc(title)}</title>${fonts}<style>${css}</style></head>
       <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">
         ${body}
       </body></html>`);
@@ -642,7 +658,7 @@ export class OverlayController {
     card.style.opacity = "1";
     card.innerHTML = buildCardHTML(getActorViewData(actor), cfg);
     this._applyScale(this._scaleEl(), cfg);
-    this._flashTarget(card, event);
+    this._flashTarget(card, event, cfg);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
@@ -657,22 +673,27 @@ export class OverlayController {
       : null;
     if (!plate) { this.finishEvent(); return; }
 
-    this._flashTarget(plate, event);
+    const cfg = this.cfg();
+    this._flashTarget(plate, event, cfg);
 
-    const dur = num(this.cfg().combatAnimDuration, 3) * 1000;
+    const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
   }
 
   // Apply the flash/shake, floating number, and HP count-up/down to one element.
-  _flashTarget(el, event) {
+  _flashTarget(el, event, cfg) {
     const isHeal = event.delta > 0;
+    const color = isHeal ? (cfg.healColor || "#3f7d28") : (cfg.damageColor || "#a01e12");
+
     el.style.animation = ""; // let the class-based flash animation take over
     el.classList.remove("pcs-flash-damage", "pcs-flash-heal");
+    el.style.setProperty("--pcs-flash", hexToRgba(color, 0.9));
     void el.offsetWidth; // restart the CSS animation
     el.classList.add(isHeal ? "pcs-flash-heal" : "pcs-flash-damage");
 
     const hit = this.popup.document.createElement("div");
     hit.className = "pcs-hit " + (isHeal ? "pcs-hit-heal" : "pcs-hit-damage");
+    hit.style.color = color;
     hit.textContent = (isHeal ? "+" : "−") + Math.abs(event.delta);
     el.appendChild(hit);
 

@@ -24,13 +24,17 @@ export function defaultFieldConfig() {
 
 // The independent overlays the module can run at once.
 // mode drives rendering: "carousel" = single rotating card (row of fields, or a
-// column when `column` is set), "party"/"vertical" = all characters as plates.
+// column when `column` is set), "party"/"vertical" = all characters as plates
+// (a horizontal row or a vertical column respectively).
 export const OVERLAYS = {
-  banner: { mode: "carousel", windowName: "pcstats-banner" },
-  verticalcard: { mode: "carousel", windowName: "pcstats-verticalcard", column: true },
-  party: { mode: "party", windowName: "pcstats-party" },
-  vertical: { mode: "vertical", windowName: "pcstats-vertical" }
+  horizontalBanner: { mode: "carousel", windowName: "pcstats-horizontal-banner", windowTitle: "PC Stats — Horizontal Banner" },
+  verticalBanner: { mode: "carousel", column: true, windowName: "pcstats-vertical-banner", windowTitle: "PC Stats — Vertical Banner" },
+  partyRow: { mode: "party", windowName: "pcstats-party-row", windowTitle: "PC Stats — Party Row" },
+  partyColumn: { mode: "vertical", windowName: "pcstats-party-column", windowTitle: "PC Stats — Party Column" }
 };
+
+// Overlay keys in display order (shared by the menu and the config tabs).
+export const OVERLAY_KEYS = ["horizontalBanner", "verticalBanner", "partyRow", "partyColumn"];
 
 // Selectable card transition animations (banner/carousel only).
 export const CARD_ANIMATIONS = ["fade", "slide", "slidev", "wipe", "zoom", "flip", "none"];
@@ -38,7 +42,7 @@ export const CARD_ANIMATIONS = ["fade", "slide", "slidev", "wipe", "zoom", "flip
 // One self-contained config object per overlay. The defaults ARE the parchment
 // "default theme" — rendering reads these values directly, so everything here is
 // editable in the config window and "Reset to defaults" restores this object.
-export function defaultOverlayConfig(keyOrMode = "banner") {
+export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
   const entry = OVERLAYS[keyOrMode];
   const mode = entry ? entry.mode : keyOrMode;
   const column = entry ? !!entry.column : false;
@@ -68,6 +72,12 @@ export function defaultOverlayConfig(keyOrMode = "banner") {
     hpBarLow: "#9b2d20",
     hpBarHigh: "#6f9b3a",
     hpBarBg: "#2a2018",
+    hpColorByHealth: false,
+    hpHighColor: "#4a7a3a",
+    hpMidColor: "#b8860b",
+    hpLowColor: "#a01e12",
+    hpMidThreshold: 50,
+    hpLowThreshold: 25,
     cardEnabled: true,
     cardColor: "#ecdcb4",
     cardOpacity: 1,
@@ -89,6 +99,8 @@ export function defaultOverlayConfig(keyOrMode = "banner") {
     combatAnimations: true,
     animationsCombatOnly: true,
     combatAnimDuration: 3,
+    damageColor: "#a01e12",
+    healColor: "#3f7d28",
     // Carousel/banner only:
     rotateInterval: 8,
     cardTransition: 0.25,

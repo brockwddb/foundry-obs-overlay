@@ -1,10 +1,10 @@
-import { MODULE_ID, FIELD_DEFS, OVERLAYS, CARD_ANIMATIONS, defaultOverlayConfig } from "./constants.js";
+import { MODULE_ID, FIELD_DEFS, OVERLAYS, OVERLAY_KEYS, CARD_ANIMATIONS, defaultOverlayConfig } from "./constants.js";
 
 const TAB_LABELS = {
-  banner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },
-  verticalcard: { label: "PCSTATS.TabVerticalCard", hint: "PCSTATS.TabVerticalCardHint" },
-  party: { label: "PCSTATS.TabParty", hint: "PCSTATS.TabPartyHint" },
-  vertical: { label: "PCSTATS.TabVertical", hint: "PCSTATS.TabVerticalHint" }
+  horizontalBanner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },
+  verticalBanner: { label: "PCSTATS.TabVerticalCard", hint: "PCSTATS.TabVerticalCardHint" },
+  partyRow: { label: "PCSTATS.TabParty", hint: "PCSTATS.TabPartyHint" },
+  partyColumn: { label: "PCSTATS.TabVertical", hint: "PCSTATS.TabVerticalHint" }
 };
 
 const ANIM_LABELS = {
@@ -104,12 +104,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _prepareContext() {
     return {
-      panes: [
-        this.#preparePane("banner"),
-        this.#preparePane("verticalcard"),
-        this.#preparePane("party"),
-        this.#preparePane("vertical")
-      ],
+      panes: OVERLAY_KEYS.map(key => this.#preparePane(key)),
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
@@ -140,6 +135,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.hpBarLow = data.hpBarLow || "#9b2d20";
     cfg.hpBarHigh = data.hpBarHigh || "#6f9b3a";
     cfg.hpBarBg = data.hpBarBg || "#2a2018";
+    cfg.hpColorByHealth = !!data.hpColorByHealth;
+    cfg.hpHighColor = data.hpHighColor || "#4a7a3a";
+    cfg.hpMidColor = data.hpMidColor || "#b8860b";
+    cfg.hpLowColor = data.hpLowColor || "#a01e12";
+    cfg.hpMidThreshold = Math.clamp(Number(data.hpMidThreshold ?? 50), 0, 100);
+    cfg.hpLowThreshold = Math.clamp(Number(data.hpLowThreshold ?? 25), 0, 100);
     cfg.cardEnabled = !!data.cardEnabled;
     cfg.cardColor = data.cardColor || "#ecdcb4";
     cfg.cardOpacity = Math.clamp(Number(data.cardOpacity ?? 1), 0, 1);
@@ -161,6 +162,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.combatAnimations = !!data.combatAnimations;
     cfg.animationsCombatOnly = !!data.animationsCombatOnly;
     cfg.combatAnimDuration = Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15);
+    cfg.damageColor = data.damageColor || "#a01e12";
+    cfg.healColor = data.healColor || "#3f7d28";
 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;
@@ -180,16 +183,11 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static async #onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object);
 
-    await game.settings.set(MODULE_ID, "bannerConfig", OverlayConfigApp.#parsePane(data.banner, "banner"));
-    await game.settings.set(MODULE_ID, "verticalcardConfig", OverlayConfigApp.#parsePane(data.verticalcard, "verticalcard"));
-    await game.settings.set(MODULE_ID, "partyConfig", OverlayConfigApp.#parsePane(data.party, "party"));
-    await game.settings.set(MODULE_ID, "verticalConfig", OverlayConfigApp.#parsePane(data.vertical, "vertical"));
-
     const api = game.modules.get(MODULE_ID).api;
-    api?.controllers?.banner?.reload();
-    api?.controllers?.verticalcard?.reload();
-    api?.controllers?.party?.reload();
-    api?.controllers?.vertical?.reload();
+    for (const key of OVERLAY_KEYS) {
+      await game.settings.set(MODULE_ID, `${key}Config`, OverlayConfigApp.#parsePane(data[key], key));
+      api?.controllers?.[key]?.reload();
+    }
   }
 
   _onRender(context, options) {

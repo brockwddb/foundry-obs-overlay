@@ -1,81 +1,56 @@
-import { MODULE_ID } from "./constants.js";
-import { registerSettings, migrateSettings } from "./settings.js";
+import { MODULE_ID, OVERLAY_KEYS } from "./constants.js";
+import { registerSettings } from "./settings.js";
 import { OverlayController } from "./overlay.js";
 
 Hooks.once("init", () => {
   registerSettings();
 });
 
-Hooks.once("ready", async () => {
-  await migrateSettings();
-
-  const banner = new OverlayController("banner");
-  const verticalcard = new OverlayController("verticalcard");
-  const party = new OverlayController("party");
-  const vertical = new OverlayController("vertical");
-  banner.registerHooks();
-  verticalcard.registerHooks();
-  party.registerHooks();
-  vertical.registerHooks();
+Hooks.once("ready", () => {
+  const controllers = {};
+  for (const key of OVERLAY_KEYS) {
+    const controller = new OverlayController(key);
+    controller.registerHooks();
+    controllers[key] = controller;
+  }
 
   const mod = game.modules.get(MODULE_ID);
   mod.api = {
-    controllers: { banner, verticalcard, party, vertical },
-    // Back-compat: bare open/close act on the banner.
-    controller: banner,
-    openBanner: () => banner.open(),
-    closeBanner: () => banner.close(),
-    openVerticalCard: () => verticalcard.open(),
-    closeVerticalCard: () => verticalcard.close(),
-    openParty: () => party.open(),
-    closeParty: () => party.close(),
-    openVertical: () => vertical.open(),
-    closeVertical: () => vertical.close(),
-    openOverlay: () => banner.open(),
-    closeOverlay: () => banner.close()
+    controllers,
+    controller: controllers.horizontalBanner, // back-compat
+    open: (key) => controllers[key]?.open(),
+    close: (key) => controllers[key]?.close(),
+    openOverlay: () => controllers.horizontalBanner?.open(),
+    closeOverlay: () => controllers.horizontalBanner?.close()
   };
 
   console.log(`${MODULE_ID} | ready`);
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {
-  if (!game.user.isGM) return;
-  const tokenControl = controls.tokens ?? controls.token;
-  if (!tokenControl?.tools) return;
+  const minRole = Number(game.settings.get(MODULE_ID, "accessRole") ?? CONST.USER_ROLES.GAMEMASTER);
+  if (game.user.role < minRole) return;
 
-  tokenControl.tools.pcStatsBanner = {
-    name: "pcStatsBanner",
-    title: "PCSTATS.OpenBanner",
-    icon: "fa-solid fa-tv",
-    button: true,
-    onClick: () => game.modules.get(MODULE_ID).api?.openBanner(),
-    onChange: () => game.modules.get(MODULE_ID).api?.openBanner()
-  };
+  const open = (key) => () => game.modules.get(MODULE_ID).api?.open(key);
+  const tool = (name, title, icon, key, order) => ({
+    name, title, icon, order, button: true,
+    onClick: open(key),
+    onChange: open(key)
+  });
 
-  tokenControl.tools.pcStatsVerticalCard = {
-    name: "pcStatsVerticalCard",
-    title: "PCSTATS.OpenVerticalCard",
-    icon: "fa-solid fa-id-card",
-    button: true,
-    onClick: () => game.modules.get(MODULE_ID).api?.openVerticalCard(),
-    onChange: () => game.modules.get(MODULE_ID).api?.openVerticalCard()
-  };
-
-  tokenControl.tools.pcStatsParty = {
-    name: "pcStatsParty",
-    title: "PCSTATS.OpenParty",
-    icon: "fa-solid fa-users",
-    button: true,
-    onClick: () => game.modules.get(MODULE_ID).api?.openParty(),
-    onChange: () => game.modules.get(MODULE_ID).api?.openParty()
-  };
-
-  tokenControl.tools.pcStatsVertical = {
-    name: "pcStatsVertical",
-    title: "PCSTATS.OpenVertical",
-    icon: "fa-solid fa-grip-lines-vertical",
-    button: true,
-    onClick: () => game.modules.get(MODULE_ID).api?.openVertical(),
-    onChange: () => game.modules.get(MODULE_ID).api?.openVertical()
+  // Single top-level control group so the four overlays don't clutter the
+  // token controls. Tools are ordered to match the config tabs.
+  controls.pcStats = {
+    name: "pcStats",
+    title: "PCSTATS.MenuTitle",
+    icon: "fa-solid fa-clapperboard",
+    order: 100,
+    activeTool: "pcStatsHorizontalBanner",
+    tools: {
+      pcStatsHorizontalBanner: tool("pcStatsHorizontalBanner", "PCSTATS.OpenBanner", "fa-solid fa-tv", "horizontalBanner", 1),
+      pcStatsVerticalBanner: tool("pcStatsVerticalBanner", "PCSTATS.OpenVerticalCard", "fa-solid fa-id-card", "verticalBanner", 2),
+      pcStatsPartyRow: tool("pcStatsPartyRow", "PCSTATS.OpenParty", "fa-solid fa-users", "partyRow", 3),
+      pcStatsPartyColumn: tool("pcStatsPartyColumn", "PCSTATS.OpenVertical", "fa-solid fa-grip-lines-vertical", "partyColumn", 4)
+    }
   };
 });
