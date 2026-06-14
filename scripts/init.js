@@ -33,28 +33,37 @@ Hooks.on("getSceneControlButtons", (controls) => {
   if (game.user.role < minRole) return;
 
   const api = () => game.modules.get(MODULE_ID).api;
-  // Toggle tools: clicking opens/closes the overlay; `active` reflects state.
-  // (Using toggles avoids button auto-fire when the group is activated.)
+  // Plain action buttons: clicking opens that overlay. onChange fires on click.
   const tool = (name, title, icon, key, order) => ({
     name, title, icon, order,
-    toggle: true,
-    active: !!api()?.controllers?.[key]?.isOpen,
-    onChange: (event, active) => { if (active) api()?.open(key); else api()?.close(key); }
+    button: true,
+    onChange: () => api()?.open(key)
   });
 
   // Single top-level control group so the four overlays don't clutter the
-  // token controls. Tools are ordered to match the config tabs.
+  // token controls. The activeTool points at a no-op "menu" tool so that
+  // *activating the group* never triggers an overlay (only direct tool clicks
+  // do). Tools are ordered to match the config tabs.
   controls.pcStats = {
     name: "pcStats",
     title: "PCSTATS.MenuTitle",
     icon: "fa-solid fa-clapperboard",
     order: 100,
+    activeTool: "pcStatsMenu",
     tools: {
+      pcStatsMenu: {
+        name: "pcStatsMenu",
+        title: "PCSTATS.MenuTitle",
+        icon: "fa-solid fa-clapperboard",
+        order: 0,
+        toggle: true,
+        active: true,
+        onChange: () => {}
+      },
       pcStatsHorizontalBanner: tool("pcStatsHorizontalBanner", "PCSTATS.OpenBanner", "fa-solid fa-tv", "horizontalBanner", 1),
       pcStatsVerticalBanner: tool("pcStatsVerticalBanner", "PCSTATS.OpenVerticalCard", "fa-solid fa-id-card", "verticalBanner", 2),
       pcStatsPartyRow: tool("pcStatsPartyRow", "PCSTATS.OpenParty", "fa-solid fa-users", "partyRow", 3),
       pcStatsPartyColumn: tool("pcStatsPartyColumn", "PCSTATS.OpenVertical", "fa-solid fa-grip-lines-vertical", "partyColumn", 4)
-    },
-    activeTool: "pcStatsHorizontalBanner"
+    }
   };
 });
