@@ -257,6 +257,7 @@ export class OverlayController {
     this.animating = false;
     this.eventQueue = [];
     this.hpCache = new Map();
+    this._lastEventActorId = null;
   }
 
   get isOpen() {
@@ -527,9 +528,10 @@ export class OverlayController {
     if (newVal != null) this.hpCache.set(actor.id, newVal);
 
     const inCombat = !!(game.combat && game.combat.started);
+    const combatOnly = cfg.animationsCombatOnly !== false;
     const selected = (cfg.selectedActors ?? []).includes(actor.id);
 
-    if (hpChanged && cfg.combatAnimations && inCombat && selected
+    if (hpChanged && cfg.combatAnimations && (!combatOnly || inCombat) && selected
       && oldVal != null && newVal != null && newVal !== oldVal) {
       const event = { actorId: actor.id, delta: newVal - oldVal, oldHp: oldVal, newHp: newVal, max };
       if (this.animating) this.eventQueue.push(event);
@@ -542,6 +544,7 @@ export class OverlayController {
 
   playEvent(event) {
     if (!this.isOpen) return;
+    this._lastEventActorId = event.actorId;
     if (this.mode === "party") this._playEventParty(event);
     else this._playEventCarousel(event);
   }
@@ -615,13 +618,28 @@ export class OverlayController {
   }
 
   finishEvent() {
+    // Another hit waiting? Play it straight away (no delay between hits).
     if (this.eventQueue.length) {
       this.playEvent(this.eventQueue.shift());
       return;
     }
     this.animating = false;
-    this.render();
-    this.startRotation();
+
+    if (this.mode === "carousel") {
+      // Keep the hit character on screen and make the loop resume FROM that
+      // character, then wait the normal display time before advancing — don't
+      // snap to another card or restart the loop from the beginning.
+      const card = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
+      if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal");
+      const slides = this.getSlides();
+      const idx = slides.findIndex(s => s.type === "actor" && s.actor?.id === this._lastEventActorId);
+      if (idx >= 0) this.index = idx;
+      this.startRotation();
+    } else {
+      // Party row: rebuild to clear the flash artifacts and sync values.
+      this.render();
+      this.startRotation();
+    }
   }
 
   // Re-read config and reapply everything (called after the config window saves).

@@ -129,6 +129,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.bannerWidth = Number(data.bannerWidth) || 960;
     cfg.bannerHeight = Number(data.bannerHeight) || 120;
     cfg.combatAnimations = !!data.combatAnimations;
+    cfg.animationsCombatOnly = !!data.animationsCombatOnly;
     cfg.combatAnimDuration = Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15);
 
     // Carousel/banner-only options.

@@ -59,6 +59,7 @@ export function defaultOverlayConfig(mode = "carousel") {
     bannerWidth: party ? 1600 : 960,
     bannerHeight: party ? 150 : 120,
     combatAnimations: true,
+    animationsCombatOnly: true,
     combatAnimDuration: 3,
     // Carousel/banner only:
     rotateInterval: 8,
