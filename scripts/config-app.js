@@ -102,9 +102,25 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     };
   }
 
+  #prepareCharacters() {
+    const styles = game.settings.get(MODULE_ID, "characterStyles") ?? {};
+    return game.actors
+      .filter(a => a.type === "character")
+      .map(a => ({
+        id: a.id,
+        name: a.name,
+        img: a.img,
+        accentOn: !!styles[a.id]?.accent,
+        accent: styles[a.id]?.accent || "#b08d3c",
+        portraitToken: styles[a.id]?.portrait === "token"
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async _prepareContext() {
     return {
       panes: OVERLAY_KEYS.map(key => this.#preparePane(key)),
+      characters: this.#prepareCharacters(),
       buttons: [
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
@@ -168,6 +184,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.highlightActiveTurn = !!data.highlightActiveTurn;
     cfg.turnColor = data.turnColor || "#ffd700";
     cfg.spotlightCurrentTurn = !!data.spotlightCurrentTurn;
+    cfg.diceFlair = !!data.diceFlair;
+    cfg.critColor = data.critColor || "#ffd700";
+    cfg.fumbleColor = data.fumbleColor || "#7a2230";
 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;
@@ -186,6 +205,15 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async #onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object);
+
+    const characterStyles = {};
+    for (const [id, v] of Object.entries(data.characters ?? {})) {
+      const style = {};
+      if (v?.accentOn) style.accent = v.accent || "#b08d3c";
+      if (v?.useToken) style.portrait = "token";
+      if (Object.keys(style).length) characterStyles[id] = style;
+    }
+    await game.settings.set(MODULE_ID, "characterStyles", characterStyles);
 
     const api = game.modules.get(MODULE_ID).api;
     for (const key of OVERLAY_KEYS) {

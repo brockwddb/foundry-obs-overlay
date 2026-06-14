@@ -183,3 +183,34 @@
   width: auto;
   margin-bottom: 8px;
 }
+
+.pcs-config .pcs-char-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pcs-config .pcs-char-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 4px;
+}
+
+.pcs-config .pcs-char-row img {
+  object-fit: cover;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+.pcs-config .pcs-char-name {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.pcs-config .pcs-char-opt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}

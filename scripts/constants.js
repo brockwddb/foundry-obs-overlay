@@ -119,6 +119,9 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     highlightActiveTurn: true,
     turnColor: "#ffd700",
     spotlightCurrentTurn: false,
+    diceFlair: true,
+    critColor: "#ffd700",
+    fumbleColor: "#7a2230",
     // Carousel/banner only:
     rotateInterval: 8,
     cardTransition: 0.25,

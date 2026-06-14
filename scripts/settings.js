@@ -11,6 +11,13 @@ export function registerSettings() {
     });
   }
 
+  game.settings.register(MODULE_ID, "characterStyles", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
   game.settings.register(MODULE_ID, "accessRole", {
     name: "PCSTATS.AccessRole",
     hint: "PCSTATS.AccessRoleHint",

@@ -3,6 +3,7 @@
     {{#each panes}}
       <a class="pcs-tab {{#if @first}}active{{/if}}" data-tab="{{this.key}}">{{localize this.label}}</a>
     {{/each}}
+    <a class="pcs-tab" data-tab="characters">{{localize "PCSTATS.TabCharacters"}}</a>
   </nav>
 
   {{#each panes}}
@@ -254,6 +255,18 @@
             <input type="checkbox" name="{{this.key}}.spotlightCurrentTurn" {{checked this.cfg.spotlightCurrentTurn}}>
           </div>
         {{/if}}
+        <div class="form-group">
+          <label>{{localize "PCSTATS.DiceFlair"}}</label>
+          <input type="checkbox" name="{{this.key}}.diceFlair" {{checked this.cfg.diceFlair}}>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.CritColor"}}</label>
+          <input type="color" name="{{this.key}}.critColor" value="{{this.cfg.critColor}}">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.FumbleColor"}}</label>
+          <input type="color" name="{{this.key}}.fumbleColor" value="{{this.cfg.fumbleColor}}">
+        </div>
       </section>
 
       <section class="pcs-general">
@@ -301,4 +314,27 @@
       </section>
     </div>
   {{/each}}
+
+  <div class="pcs-pane" data-pane="characters">
+    <p class="notes">{{localize "PCSTATS.CharactersHint"}}</p>
+    <div class="pcs-char-list">
+      {{#each characters}}
+        <div class="pcs-char-row">
+          <img src="{{this.img}}" alt="" width="32" height="32">
+          <span class="pcs-char-name">{{this.name}}</span>
+          <label class="pcs-char-opt">
+            <input type="checkbox" name="characters.{{this.id}}.accentOn" {{checked this.accentOn}}>
+            {{localize "PCSTATS.Accent"}}
+            <input type="color" name="characters.{{this.id}}.accent" value="{{this.accent}}">
+          </label>
+          <label class="pcs-char-opt">
+            <input type="checkbox" name="characters.{{this.id}}.useToken" {{checked this.portraitToken}}>
+            {{localize "PCSTATS.UseTokenArt"}}
+          </label>
+        </div>
+      {{else}}
+        <p class="notes">{{localize "PCSTATS.NoCharacterActors"}}</p>
+      {{/each}}
+    </div>
+  </div>
 </div>

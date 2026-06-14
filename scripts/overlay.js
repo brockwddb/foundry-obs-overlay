@@ -196,6 +196,10 @@ const BASE_CSS = `
   }
   .pcs-flash-damage { animation: pcs-flash 0.9s ease-out, pcs-shake 0.5s ease-in-out; }
   .pcs-flash-heal { animation: pcs-flash 0.9s ease-out; }
+  @keyframes pcs-pop { 0% { transform: scale(1); } 30% { transform: scale(1.06); } 100% { transform: scale(1); } }
+  .pcs-flair-crit { animation: pcs-flash 1.2s ease-out, pcs-pop 0.5s ease-out; }
+  .pcs-flair-fumble { animation: pcs-flash 1.2s ease-out, pcs-shake 0.5s ease-in-out; }
+  .pcs-flair-text { font-size: 2.9em; font-weight: 900; letter-spacing: 1px; }
 
   /* Card transition animations (banner) */
   @keyframes pcs-fade-out { to { opacity: 0; } }
@@ -266,11 +270,13 @@ function renderField(f, view, cfg) {
   const fs = `style="${fieldStyle(f)}"`;
   switch (f.key) {
     case "portrait": {
-      if (!view.img) return "";
+      const useToken = characterStyle(view.id).portrait === "token";
+      const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
+      if (!src) return "";
       const size = num(cfg.portraitSize, 120);
       const radius = cfg.portraitShape === "circle" ? "50%"
         : cfg.portraitShape === "square" ? "0" : "8px";
-      return `<img class="pcs-portrait" src="${esc(view.img)}" style="height:${size}px;border-radius:${radius}">`;
+      return `<img class="pcs-portrait" src="${esc(src)}" style="height:${size}px;border-radius:${radius}">`;
     }
     case "name":
       return `<div class="pcs-field pcs-name" ${fs}>${esc(view.name)}</div>`;
@@ -362,6 +368,26 @@ function activeCombatantActorId() {
   return combat.combatant?.actorId ?? null;
 }
 
+// Inspect a chat message's rolls for a natural 20 / natural 1 on a d20.
+function rollFlairType(message) {
+  for (const roll of message.rolls ?? []) {
+    for (const die of roll.dice ?? []) {
+      if (die.faces !== 20) continue;
+      for (const r of die.results ?? []) {
+        if (r.active === false) continue;
+        if (r.result === 20) return "crit";
+        if (r.result === 1) return "fumble";
+      }
+    }
+  }
+  return null;
+}
+
+// Per-character identity (accent color / portrait source), shared across overlays.
+function characterStyle(actorId) {
+  return (game.settings.get(MODULE_ID, "characterStyles") ?? {})[actorId] ?? {};
+}
+
 function buildFieldParts(view, cfg) {
   return [...(cfg.fieldConfig ?? [])]
     .filter(f => f.enabled)
@@ -373,6 +399,12 @@ function buildFieldParts(view, cfg) {
 function downBadge(view, cfg) {
   if (!cfg.showDownState || !view.down) return "";
   return `<div class="pcs-down-badge">${esc(game.i18n.localize("PCSTATS.Down"))}</div>`;
+}
+
+// Per-character accent frame, if set. Falls back to "" (use the configured border).
+function accentBorderCss(actorId, cfg) {
+  const accent = characterStyle(actorId).accent;
+  return accent ? `border:${num(cfg.borderWidth, 2) || 2}px solid ${accent};` : "";
 }
 
 function buildCardHTML(view, cfg) {
@@ -616,6 +648,8 @@ export class OverlayController {
       c.classList.toggle("pcs-down", isDown);
       c.classList.toggle("pcs-active-turn", isActiveTurn);
       c.style.setProperty("--pcs-turn", cfg.turnColor || "#ffd700");
+      const accent = view ? characterStyle(view.id).accent : null;
+      c.style.border = accent ? `${num(cfg.borderWidth, 2) || 2}px solid ${accent}` : "";
       this._applyScale(this._scaleEl(), cfg);
       this._animateCardIn(c, anim, dur);
     };
@@ -646,7 +680,8 @@ export class OverlayController {
       const cls = ["pcs-plate", "pcs-card-bg"];
       if (cfg.showDownState && view.down) cls.push("pcs-down");
       if (cfg.highlightActiveTurn && view.id === activeId) cls.push("pcs-active-turn");
-      return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="--pcs-turn:${esc(cfg.turnColor || "#ffd700")}">${downBadge(view, cfg)}${parts.join("")}</div>`;
+      const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(a.id, cfg)}`;
+      return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
     }).join("");
     this._applyScale(party, cfg);
   }
@@ -753,7 +788,8 @@ export class OverlayController {
     card.style.opacity = "1";
     card.innerHTML = buildCardHTML(getActorViewData(actor), cfg);
     this._applyScale(this._scaleEl(), cfg);
-    this._flashTarget(card, event, cfg);
+    if (event.kind === "flair") this._flairTarget(card, event.flair, cfg);
+    else this._flashTarget(card, event, cfg);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
@@ -769,10 +805,29 @@ export class OverlayController {
     if (!plate) { this.finishEvent(); return; }
 
     const cfg = this.cfg();
-    this._flashTarget(plate, event, cfg);
+    if (event.kind === "flair") this._flairTarget(plate, event.flair, cfg);
+    else this._flashTarget(plate, event, cfg);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
+  }
+
+  // Crit (nat 20) / fumble (nat 1) burst on one element.
+  _flairTarget(el, flair, cfg) {
+    const isCrit = flair === "crit";
+    const color = isCrit ? (cfg.critColor || "#ffd700") : (cfg.fumbleColor || "#7a2230");
+
+    el.style.animation = "";
+    el.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble");
+    el.style.setProperty("--pcs-flash", hexToRgba(color, 0.95));
+    void el.offsetWidth;
+    el.classList.add(isCrit ? "pcs-flair-crit" : "pcs-flair-fumble");
+
+    const text = this.popup.document.createElement("div");
+    text.className = "pcs-hit pcs-flair-text";
+    text.style.color = color;
+    text.textContent = isCrit ? "NAT 20!" : "NAT 1!";
+    el.appendChild(text);
   }
 
   // Apply the flash/shake, floating number, and HP count-up/down to one element.
@@ -828,7 +883,7 @@ export class OverlayController {
       // character, then wait the normal display time before advancing — don't
       // snap to another card or restart the loop from the beginning.
       const card = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
-      if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal");
+      if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble");
       const slides = this.getSlides();
       const idx = slides.findIndex(s => s.type === "actor" && s.actor?.id === this._lastEventActorId);
       if (idx >= 0) this.index = idx;
@@ -874,9 +929,25 @@ export class OverlayController {
     this.render();
   }
 
+  // A chat message landed — check it for a nat 20 / nat 1 by a selected actor.
+  onCreateChatMessage(message) {
+    if (!this.isOpen) return;
+    const cfg = this.cfg();
+    if (!cfg.diceFlair) return;
+    const actorId = message.speaker?.actor;
+    if (!actorId || !(cfg.selectedActors ?? []).includes(actorId)) return;
+    const flair = rollFlairType(message);
+    if (!flair) return;
+    const event = { kind: "flair", actorId, flair };
+    if (this.animating) this.eventQueue.push(event);
+    else this.playEvent(event);
+  }
+
   registerHooks() {
     this._hookIds.push(["updateActor",
       Hooks.on("updateActor", (actor, changes) => this.onUpdateActor(actor, changes))]);
+    this._hookIds.push(["createChatMessage",
+      Hooks.on("createChatMessage", (message) => this.onCreateChatMessage(message))]);
 
     const onCombat = () => this.onUpdateCombat();
     for (const hook of ["updateCombat", "combatTurn", "combatRound", "deleteCombat"]) {
