@@ -13,6 +13,13 @@
       <section class="pcs-preview">
         <h3>{{localize "PCSTATS.Preview"}}</h3>
         <iframe class="pcs-preview-frame" data-preview="{{this.key}}" title="preview"></iframe>
+        <div class="pcs-preview-actions">
+          {{#if this.isBanner}}<button type="button" class="pcs-prev-btn" data-prev="message">{{localize "PCSTATS.PrevMessage"}}</button>{{/if}}
+          <button type="button" class="pcs-prev-btn" data-prev="damage">{{localize "PCSTATS.PrevDamage"}}</button>
+          <button type="button" class="pcs-prev-btn" data-prev="heal">{{localize "PCSTATS.PrevHeal"}}</button>
+          <button type="button" class="pcs-prev-btn" data-prev="crit">{{localize "PCSTATS.PrevCrit"}}</button>
+          <button type="button" class="pcs-prev-btn" data-prev="fumble">{{localize "PCSTATS.PrevFumble"}}</button>
+        </div>
       </section>
 
       <section>

@@ -503,26 +503,53 @@ function previewViews(cfg, count) {
   return Array.from({ length: Math.min(count, 3) }, () => SAMPLE_VIEW);
 }
 
-function previewPlateHTML(view, cfg) {
+// Bake a damage/heal/crit/fumble animation into a static element so it replays
+// when the preview iframe reloads. Returns extra class, CSS var, and overlay.
+function stateDecoration(cfg, state) {
+  const make = (cls, color, text, textCls) => ({
+    cls,
+    varStyle: `--pcs-flash:${hexToRgba(color, 0.92)};`,
+    overlay: `<div class="pcs-hit ${textCls}" style="color:${esc(color)}">${esc(text)}</div>`
+  });
+  switch (state) {
+    case "damage": return make("pcs-flash-damage", cfg.damageColor || "#a01e12", "−7", "pcs-hit-damage");
+    case "heal": return make("pcs-flash-heal", cfg.healColor || "#3f7d28", "+5", "pcs-hit-heal");
+    case "crit": return make("pcs-flair-crit", cfg.critColor || "#ffd700", "NAT 20!", "pcs-flair-text");
+    case "fumble": return make("pcs-flair-fumble", cfg.fumbleColor || "#7a2230", "NAT 1!", "pcs-flair-text");
+    default: return { cls: "", varStyle: "", overlay: "" };
+  }
+}
+
+function sampleMessage(cfg) {
+  return (cfg.customMessages ?? []).find(m => m.enabled && (String(m.text ?? "").trim() || m.image))
+    ?? { text: "Tonight's stream sponsored by Acme Dice!" };
+}
+
+function previewPlateHTML(view, cfg, deco) {
   const parts = buildFieldParts(view, cfg);
   const cls = ["pcs-plate", "pcs-card-bg"];
   if (cfg.showDownState && view.down) cls.push("pcs-down");
-  const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(view.id, cfg)}`;
-  return `<div class="${cls.join(" ")}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
+  if (deco?.cls) cls.push(deco.cls);
+  const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(view.id, cfg)}${deco?.varStyle ?? ""}`;
+  return `<div class="${cls.join(" ")}" style="${style}">${downBadge(view, cfg)}${parts.join("")}${deco?.overlay ?? ""}</div>`;
 }
 
 // Build a self-contained HTML document for the live preview iframe.
-export function buildPreviewDocument(cfg, mode, column) {
+// state: null | "message" | "damage" | "heal" | "crit" | "fumble".
+export function buildPreviewDocument(cfg, mode, column, state = null) {
   const css = BASE_CSS + dynamicCss(cfg);
   const fonts = fontLinks(cfg.fontFamily);
+  const deco = stateDecoration(cfg, state);
 
   let inner;
   if (mode === "carousel") {
-    const view = previewViews(cfg, 1)[0];
     const cardClass = column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
-    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass}">${buildCardHTML(view, cfg)}</div></div></div>`;
+    const content = state === "message"
+      ? buildMessageHTML(sampleMessage(cfg), cfg)
+      : buildCardHTML(previewViews(cfg, 1)[0], cfg) + deco.overlay;
+    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass} ${deco.cls}" style="${deco.varStyle}">${content}</div></div></div>`;
   } else {
-    const plates = previewViews(cfg, 4).map(v => previewPlateHTML(v, cfg)).join("");
+    const plates = previewViews(cfg, 4).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
     if (mode === "vertical") {
       inner = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical">${plates}</div></div>`;
     } else {

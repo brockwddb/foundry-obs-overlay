@@ -276,6 +276,10 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       };
       pane.addEventListener("input", schedule);
       pane.addEventListener("change", schedule);
+
+      for (const btn of pane.querySelectorAll(".pcs-prev-btn")) {
+        btn.addEventListener("click", () => this.#updatePreview(key, btn.dataset.prev));
+      }
     }
   }
 
@@ -286,13 +290,13 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return OverlayConfigApp.#parsePane(data[key], key);
   }
 
-  #updatePreview(key) {
+  #updatePreview(key, state = null) {
     const frame = this.element.querySelector(`.pcs-preview-frame[data-preview="${key}"]`);
     if (!frame) return;
     try {
       const cfg = this.#paneConfig(key);
       const { mode, column } = OVERLAYS[key];
-      frame.srcdoc = buildPreviewDocument(cfg, mode, !!column);
+      frame.srcdoc = buildPreviewDocument(cfg, mode, !!column, state);
     } catch (err) {
       console.warn(`${MODULE_ID} | preview render failed`, err);
     }
@@ -467,5 +471,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const input = row.querySelector(".pcs-order-input");
       if (input) input.value = String(i);
     });
+    // Setting .value in JS doesn't fire input events, so nudge the preview.
+    tbody.dispatchEvent(new Event("input", { bubbles: true }));
   }
 }

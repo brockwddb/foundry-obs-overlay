@@ -32,11 +32,14 @@ Hooks.on("getSceneControlButtons", (controls) => {
   const minRole = Number(game.settings.get(MODULE_ID, "accessRole") ?? CONST.USER_ROLES.GAMEMASTER);
   if (game.user.role < minRole) return;
 
-  const open = (key) => () => game.modules.get(MODULE_ID).api?.open(key);
+  const api = () => game.modules.get(MODULE_ID).api;
+  // Toggle tools: clicking opens/closes the overlay; `active` reflects state.
+  // (Using toggles avoids button auto-fire when the group is activated.)
   const tool = (name, title, icon, key, order) => ({
-    name, title, icon, order, button: true,
-    onClick: open(key),
-    onChange: open(key)
+    name, title, icon, order,
+    toggle: true,
+    active: !!api()?.controllers?.[key]?.isOpen,
+    onChange: (event, active) => { if (active) api()?.open(key); else api()?.close(key); }
   });
 
   // Single top-level control group so the four overlays don't clutter the
@@ -46,12 +49,12 @@ Hooks.on("getSceneControlButtons", (controls) => {
     title: "PCSTATS.MenuTitle",
     icon: "fa-solid fa-clapperboard",
     order: 100,
-    activeTool: "pcStatsHorizontalBanner",
     tools: {
       pcStatsHorizontalBanner: tool("pcStatsHorizontalBanner", "PCSTATS.OpenBanner", "fa-solid fa-tv", "horizontalBanner", 1),
       pcStatsVerticalBanner: tool("pcStatsVerticalBanner", "PCSTATS.OpenVerticalCard", "fa-solid fa-id-card", "verticalBanner", 2),
       pcStatsPartyRow: tool("pcStatsPartyRow", "PCSTATS.OpenParty", "fa-solid fa-users", "partyRow", 3),
       pcStatsPartyColumn: tool("pcStatsPartyColumn", "PCSTATS.OpenVertical", "fa-solid fa-grip-lines-vertical", "partyColumn", 4)
-    }
+    },
+    activeTool: "pcStatsHorizontalBanner"
   };
 });
