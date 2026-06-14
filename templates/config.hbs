@@ -1,4 +1,25 @@
 <div class="pcs-config">
+  <section class="pcs-layout">
+    <h3>{{localize "PCSTATS.LayoutTheme"}}</h3>
+    <p class="notes">{{localize "PCSTATS.LayoutHint"}}</p>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.LayoutMode"}}</label>
+      <select name="layoutMode">
+        {{#each layoutModes}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.Theme"}}</label>
+      <select name="theme">
+        {{#each themes}}
+          <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+  </section>
+
   <section>
     <h3>{{localize "PCSTATS.SelectCharacters"}}</h3>
     <p class="notes">{{localize "PCSTATS.SelectCharactersHint"}}</p>
@@ -159,6 +180,10 @@
     <div class="form-group">
       <label>{{localize "PCSTATS.BgColor"}}</label>
       <input type="color" name="bgColor" value="{{bgColor}}">
+    </div>
+    <div class="form-group">
+      <label>{{localize "PCSTATS.BannerWidth"}}</label>
+      <input type="number" name="bannerWidth" value="{{bannerWidth}}" min="200" max="3840" step="10">
     </div>
     <div class="form-group">
       <label>{{localize "PCSTATS.BannerHeight"}}</label>

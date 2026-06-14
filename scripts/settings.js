@@ -16,6 +16,20 @@ export function registerSettings() {
     default: defaultFieldConfig()
   });
 
+  game.settings.register(MODULE_ID, "layoutMode", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "carousel"
+  });
+
+  game.settings.register(MODULE_ID, "theme", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "parchment"
+  });
+
   game.settings.register(MODULE_ID, "rotateInterval", {
     scope: "world",
     config: false,
@@ -70,6 +84,13 @@ export function registerSettings() {
     config: false,
     type: String,
     default: "#00ff00"
+  });
+
+  game.settings.register(MODULE_ID, "bannerWidth", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 960
   });
 
   game.settings.register(MODULE_ID, "bannerHeight", {

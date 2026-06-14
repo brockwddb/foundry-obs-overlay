@@ -94,6 +94,7 @@
   gap: 6px;
 }
 
+.pcs-config .pcs-layout .form-group,
 .pcs-config .pcs-appearance .form-group,
 .pcs-config .pcs-general .form-group,
 .pcs-config .pcs-messages .form-group,
@@ -104,6 +105,7 @@
   margin: 4px 0;
 }
 
+.pcs-config .pcs-layout .form-group label,
 .pcs-config .pcs-appearance .form-group label,
 .pcs-config .pcs-general .form-group label,
 .pcs-config .pcs-messages .form-group label,

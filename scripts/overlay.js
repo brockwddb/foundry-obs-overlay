@@ -3,9 +3,15 @@ import { getActorViewData } from "./data.js";
 
 const FADE_MS = 250;
 
-// CSS injected directly into the popout document (the popout doesn't share the
-// main page's stylesheet, so everything the banner needs lives here).
-const OVERLAY_CSS = `
+// Thematic fonts for the parchment theme (loaded into the popout head only when
+// that theme is active). Falls back to serif if the popout can't reach Google.
+const FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=IM+Fell+English&display=swap">`;
+
+// Base CSS injected into the popout document (the popout doesn't share the main
+// page's stylesheet, so everything the banner needs lives here).
+const BASE_CSS = `
   html, body {
     margin: 0;
     padding: 0;
@@ -31,6 +37,30 @@ const OVERLAY_CSS = `
     transition: opacity ${FADE_MS}ms ease-in-out;
     text-shadow: 0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
   }
+  /* Party-row layout: one plate per character, sitting along the bottom. */
+  #pcs-root.pcs-party-root { align-items: flex-end; }
+  #pcs-party {
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 6px 12px 10px;
+    box-sizing: border-box;
+  }
+  .pcs-plate {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.5);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
+  }
+  .pcs-plate .pcs-field { text-align: center; }
+  .pcs-plate .pcs-hpbar { min-width: 90px; }
   .pcs-portrait {
     aspect-ratio: 1 / 1;
     object-fit: cover;
@@ -114,6 +144,35 @@ const OVERLAY_CSS = `
   .pcs-flash-heal { animation: pcs-flash-heal 0.9s ease-out; }
 `;
 
+// Parchment & ink theme — layered over BASE_CSS, scoped to a body class so the
+// base styles stay untouched.
+const PARCHMENT_CSS = `
+  body.pcs-theme-parchment { font-family: "IM Fell English", Georgia, "Times New Roman", serif; color: #3a2a14; }
+  body.pcs-theme-parchment #pcs-card,
+  body.pcs-theme-parchment .pcs-plate {
+    background: radial-gradient(120% 140% at 50% 0%, #f7eed6 0%, #ecdcb4 65%, #ddc795 100%);
+    border: 2px solid #b08d3c;
+    box-shadow: 0 0 0 2px #6f5a2a, 0 4px 12px rgba(0,0,0,0.5), inset 0 0 22px rgba(120,90,40,0.22);
+    color: #3a2a14;
+    text-shadow: none;
+  }
+  body.pcs-theme-parchment .pcs-field { color: #3a2a14; text-shadow: none; }
+  body.pcs-theme-parchment .pcs-name,
+  body.pcs-theme-parchment .pcs-message {
+    font-family: "Cinzel", Georgia, serif;
+    font-weight: 700;
+    color: #5a3a16;
+    letter-spacing: 1px;
+  }
+  body.pcs-theme-parchment .pcs-portrait { border-color: #b08d3c; box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+  body.pcs-theme-parchment .pcs-hpbar { background: rgba(58,42,20,0.28); }
+  body.pcs-theme-parchment .pcs-hpbar > span { background: linear-gradient(90deg, #9b2d20, #6f9b3a); }
+  body.pcs-theme-parchment .pcs-divider { background: #b08d3c !important; opacity: 0.75; }
+  body.pcs-theme-parchment .pcs-ability b { color: #6f5a2a; opacity: 1; }
+  body.pcs-theme-parchment .pcs-hit-damage { color: #a01e12; }
+  body.pcs-theme-parchment .pcs-hit-heal { color: #3f7d28; }
+`;
+
 function esc(str) {
   return String(str ?? "").replace(/[&<>"']/g, c => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -178,11 +237,16 @@ function renderField(f, view, opts) {
   }
 }
 
-function buildCardHTML(view, fieldConfig, opts) {
-  const ordered = [...fieldConfig]
+function buildFieldParts(view, fieldConfig, opts) {
+  return [...fieldConfig]
     .filter(f => f.enabled)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  const parts = ordered.map(f => renderField(f, view, opts)).filter(html => html !== "");
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map(f => renderField(f, view, opts))
+    .filter(html => html !== "");
+}
+
+function buildCardHTML(view, fieldConfig, opts) {
+  const parts = buildFieldParts(view, fieldConfig, opts);
   if (opts.showDividers && parts.length > 1) {
     const divider = `<div class="pcs-divider" style="background:${esc(opts.dividerColor)}"></div>`;
     return parts.join(divider);
@@ -209,6 +273,10 @@ export class OverlayController {
 
   get isOpen() {
     return this.popup && !this.popup.closed;
+  }
+
+  get layoutMode() {
+    return game.settings.get(MODULE_ID, "layoutMode") ?? "carousel";
   }
 
   getActors() {
@@ -278,8 +346,9 @@ export class OverlayController {
       this.popup.focus();
       return;
     }
+    const width = game.settings.get(MODULE_ID, "bannerWidth") ?? 960;
     const height = game.settings.get(MODULE_ID, "bannerHeight") ?? 120;
-    this.popup = window.open("", "pcstats-overlay", `width=960,height=${height},menubar=no,toolbar=no,location=no,status=no`);
+    this.popup = window.open("", "pcstats-overlay", `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`);
     if (!this.popup) {
       ui.notifications.error(game.i18n.localize("PCSTATS.PopupBlocked"));
       return;
@@ -300,6 +369,8 @@ export class OverlayController {
   }
 
   _writeSkeleton() {
+    const theme = game.settings.get(MODULE_ID, "theme") ?? "plain";
+    const parchment = theme === "parchment";
     const bg = game.settings.get(MODULE_ID, "bgColor") ?? "#00ff00";
     const textColor = game.settings.get(MODULE_ID, "textColor") ?? "#ffffff";
     const cardEnabled = game.settings.get(MODULE_ID, "cardEnabled") ?? false;
@@ -312,22 +383,37 @@ export class OverlayController {
     const padY = game.settings.get(MODULE_ID, "paddingY") ?? 12;
 
     let cardStyle = `gap:${Number(fieldGap) || 0}px;padding:${Number(padY) || 0}px ${Number(padX) || 0}px;`;
-    if (cardEnabled) {
+    // The parchment theme draws its own plate; only the plain theme honours the
+    // solid-background-bar setting via inline styles.
+    if (cardEnabled && !parchment) {
       cardStyle += `background:${hexToRgba(cardColor, cardOpacity)};border-radius:${Number(cardRadius) || 0}px;`;
     }
+
+    const body = this.layoutMode === "party"
+      ? `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`
+      : `<div id="pcs-root"><div id="pcs-card" style="${cardStyle}"></div></div>`;
+
+    const fonts = parchment ? FONT_LINKS : "";
+    const css = BASE_CSS + (parchment ? PARCHMENT_CSS : "");
+    const bodyClass = parchment ? "pcs-theme-parchment" : "";
 
     const doc = this.popup.document;
     doc.open();
     doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
-      <title>PC Stats Overlay</title><style>${OVERLAY_CSS}</style></head>
-      <body style="background:${esc(bg)};color:${esc(textColor)}">
-        <div id="pcs-root"><div id="pcs-card" style="${cardStyle}"></div></div>
+      <title>PC Stats Overlay</title>${fonts}<style>${css}</style></head>
+      <body class="${bodyClass}" style="background:${esc(bg)};color:${esc(textColor)}">
+        ${body}
       </body></html>`);
     doc.close();
   }
 
   render() {
     if (!this.isOpen || this.animating) return;
+    if (this.layoutMode === "party") this._renderParty();
+    else this._renderCarousel();
+  }
+
+  _renderCarousel() {
     const card = this.popup.document.getElementById("pcs-card");
     if (!card) return;
 
@@ -349,8 +435,26 @@ export class OverlayController {
     }, FADE_MS);
   }
 
+  _renderParty() {
+    const party = this.popup.document.getElementById("pcs-party");
+    if (!party) return;
+
+    const actors = this.getActors();
+    if (!actors.length) {
+      party.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
+      return;
+    }
+
+    const opts = this._readOpts();
+    const fieldConfig = game.settings.get(MODULE_ID, "fieldConfig") ?? [];
+    party.innerHTML = actors.map(a => {
+      const parts = buildFieldParts(getActorViewData(a), fieldConfig, opts);
+      return `<div class="pcs-plate" data-actor-id="${esc(a.id)}">${parts.join("")}</div>`;
+    }).join("");
+  }
+
   advance() {
-    if (this.animating) return;
+    if (this.animating || this.layoutMode === "party") return;
     const slides = this.getSlides();
     if (slides.length <= 1) return;
     this.index = (this.index + 1) % slides.length;
@@ -359,6 +463,7 @@ export class OverlayController {
 
   startRotation() {
     this.stopRotation();
+    if (this.layoutMode === "party") return;
     const interval = Number(game.settings.get(MODULE_ID, "rotateInterval")) || 0;
     if (interval > 0) {
       this.rotateTimer = setInterval(() => this.advance(), interval * 1000);
@@ -400,6 +505,11 @@ export class OverlayController {
 
   playEvent(event) {
     if (!this.isOpen) return;
+    if (this.layoutMode === "party") this._playEventParty(event);
+    else this._playEventCarousel(event);
+  }
+
+  _playEventCarousel(event) {
     this.animating = true;
     this.stopRotation();
 
@@ -413,26 +523,47 @@ export class OverlayController {
     card.style.opacity = "1";
     card.innerHTML = buildCardHTML(view, fieldConfig, this._readOpts());
 
-    const isHeal = event.delta > 0;
-    card.classList.remove("pcs-flash-damage", "pcs-flash-heal");
-    void card.offsetWidth; // restart the CSS animation
-    card.classList.add(isHeal ? "pcs-flash-heal" : "pcs-flash-damage");
-
-    const hit = this.popup.document.createElement("div");
-    hit.className = "pcs-hit " + (isHeal ? "pcs-hit-heal" : "pcs-hit-damage");
-    hit.textContent = (isHeal ? "+" : "−") + Math.abs(event.delta);
-    card.appendChild(hit);
-
-    this._animateHp(card, event.oldHp, event.newHp, event.max, 900);
+    this._flashTarget(card, event);
 
     const dur = (Number(game.settings.get(MODULE_ID, "combatAnimDuration")) || 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
   }
 
-  _animateHp(card, from, to, max, duration) {
+  _playEventParty(event) {
+    this.animating = true;
+
+    const party = this.popup.document.getElementById("pcs-party");
+    const plate = party
+      ? [...party.querySelectorAll(".pcs-plate")].find(p => p.dataset.actorId === event.actorId)
+      : null;
+    if (!plate) { this.finishEvent(); return; }
+
+    // The plate is already on screen showing the old HP — flash it in place.
+    this._flashTarget(plate, event);
+
+    const dur = (Number(game.settings.get(MODULE_ID, "combatAnimDuration")) || 3) * 1000;
+    this.popup.setTimeout(() => this.finishEvent(), dur);
+  }
+
+  // Apply the flash/shake, floating number, and HP count-up/down to one element.
+  _flashTarget(el, event) {
+    const isHeal = event.delta > 0;
+    el.classList.remove("pcs-flash-damage", "pcs-flash-heal");
+    void el.offsetWidth; // restart the CSS animation
+    el.classList.add(isHeal ? "pcs-flash-heal" : "pcs-flash-damage");
+
+    const hit = this.popup.document.createElement("div");
+    hit.className = "pcs-hit " + (isHeal ? "pcs-hit-heal" : "pcs-hit-damage");
+    hit.textContent = (isHeal ? "+" : "−") + Math.abs(event.delta);
+    el.appendChild(hit);
+
+    this._animateHp(el, event.oldHp, event.newHp, event.max, 900);
+  }
+
+  _animateHp(root, from, to, max, duration) {
     const win = this.popup;
-    const valueEl = card.querySelector(".pcs-hp-value");
-    const barEl = card.querySelector(".pcs-hpbar > span");
+    const valueEl = root.querySelector(".pcs-hp-value");
+    const barEl = root.querySelector(".pcs-hpbar > span");
     const setFrame = (cur) => {
       if (valueEl) valueEl.textContent = String(cur);
       if (barEl && max) barEl.style.transform = `scaleX(${Math.max(0, Math.min(1, cur / max)).toFixed(3)})`;

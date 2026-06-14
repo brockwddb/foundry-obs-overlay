@@ -52,6 +52,18 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const messages = (game.settings.get(MODULE_ID, "customMessages") ?? [])
       .map((m, i) => ({ index: i, text: m.text ?? "", enabled: m.enabled !== false }));
 
+    const layoutMode = game.settings.get(MODULE_ID, "layoutMode");
+    const layoutModes = [
+      { value: "carousel", label: "PCSTATS.LayoutCarousel", selected: layoutMode === "carousel" },
+      { value: "party", label: "PCSTATS.LayoutParty", selected: layoutMode === "party" }
+    ];
+
+    const theme = game.settings.get(MODULE_ID, "theme");
+    const themes = [
+      { value: "parchment", label: "PCSTATS.ThemeParchment", selected: theme === "parchment" },
+      { value: "plain", label: "PCSTATS.ThemePlain", selected: theme === "plain" }
+    ];
+
     const portraitShape = game.settings.get(MODULE_ID, "portraitShape");
     const portraitShapes = [
       { value: "rounded", label: "PCSTATS.ShapeRounded", selected: portraitShape === "rounded" },
@@ -62,8 +74,11 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return {
       actors,
       fields,
+      layoutModes,
+      themes,
       rotateInterval: game.settings.get(MODULE_ID, "rotateInterval"),
       bgColor: game.settings.get(MODULE_ID, "bgColor"),
+      bannerWidth: game.settings.get(MODULE_ID, "bannerWidth"),
       bannerHeight: game.settings.get(MODULE_ID, "bannerHeight"),
       textColor: game.settings.get(MODULE_ID, "textColor"),
       showHpBar: game.settings.get(MODULE_ID, "showHpBar"),
@@ -108,9 +123,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     await game.settings.set(MODULE_ID, "selectedActors", selectedActors);
     await game.settings.set(MODULE_ID, "fieldConfig", fieldConfig);
+    await game.settings.set(MODULE_ID, "layoutMode", data.layoutMode === "party" ? "party" : "carousel");
+    await game.settings.set(MODULE_ID, "theme", data.theme === "plain" ? "plain" : "parchment");
     await game.settings.set(MODULE_ID, "rotateInterval", Number(data.rotateInterval) || 0);
     await game.settings.set(MODULE_ID, "bgColor", data.bgColor || "#00ff00");
-    await game.settings.set(MODULE_ID, "bannerHeight", Number(data.bannerHeight) || 220);
+    await game.settings.set(MODULE_ID, "bannerWidth", Number(data.bannerWidth) || 960);
+    await game.settings.set(MODULE_ID, "bannerHeight", Number(data.bannerHeight) || 120);
     await game.settings.set(MODULE_ID, "textColor", data.textColor || "#ffffff");
     await game.settings.set(MODULE_ID, "showHpBar", !!data.showHpBar);
     await game.settings.set(MODULE_ID, "cardEnabled", !!data.cardEnabled);
