@@ -3,11 +3,28 @@ import { getActorViewData } from "./data.js";
 
 const DEFAULT_TRANSITION_S = 0.25;
 
-// Thematic fonts for the serif font option (loaded into the popout head only
-// when that option is active). Falls back to serif if Google can't be reached.
-const FONT_LINKS = `<link rel="preconnect" href="https://fonts.googleapis.com">
+// Curated fonts. `body`/`display` are CSS stacks; `google` lists Google Fonts
+// css2 family specs to load into the popout (empty = system fonts only).
+const FONTS = {
+  serif: { body: `"IM Fell English", Georgia, serif`, display: `"Cinzel", Georgia, serif`, google: ["Cinzel:wght@600;700", "IM+Fell+English"] },
+  default: { body: `"Signika", "Helvetica Neue", Arial, sans-serif`, display: null, google: [] },
+  medieval: { body: `"MedievalSharp", Georgia, serif`, display: `"MedievalSharp", Georgia, serif`, google: ["MedievalSharp"] },
+  uncial: { body: `"Cinzel", Georgia, serif`, display: `"Uncial Antiqua", Georgia, serif`, google: ["Cinzel:wght@600;700", "Uncial+Antiqua"] },
+  modern: { body: `system-ui, "Segoe UI", Roboto, Arial, sans-serif`, display: null, google: [] }
+};
+
+function fontDef(key) {
+  return FONTS[key] ?? FONTS.serif;
+}
+
+function fontLinks(key) {
+  const families = fontDef(key).google;
+  if (!families.length) return "";
+  const q = families.map(f => `family=${f}`).join("&");
+  return `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=IM+Fell+English&display=swap">`;
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${q}&display=swap">`;
+}
 
 // Base CSS injected into the popout document. Colors/fonts/backgrounds are NOT
 // set here — those come from the per-overlay config via the dynamic style block,
@@ -111,7 +128,10 @@ const BASE_CSS = `
   }
   .pcs-field { line-height: 1.15; white-space: nowrap; min-width: 0; max-width: 100%; }
   .pcs-name { font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
-  .pcs-message { font-weight: 700; text-align: center; white-space: normal; overflow-wrap: anywhere; letter-spacing: 0.5px; }
+  .pcs-message { font-weight: 700; text-align: center; white-space: normal; overflow-wrap: anywhere; letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pcs-message-img { max-width: 100%; object-fit: contain; }
+  @keyframes pcs-plate-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+  .pcs-plate-enter { animation: pcs-plate-in 0.5s ease-out both; }
   .pcs-hpbar {
     position: relative;
     width: 100%;
@@ -417,7 +437,11 @@ function buildCardHTML(view, cfg) {
 function buildMessageHTML(message, cfg) {
   let s = `font-size:${num(cfg.messageFontSize, 26)}px;`;
   if (cfg.messageColor) s += `color:${cfg.messageColor};`;
-  return `<div class="pcs-field pcs-message" style="${s}">${esc(message.text)}</div>`;
+  const img = message.image
+    ? `<img class="pcs-message-img" src="${esc(message.image)}" style="max-height:${num(cfg.messageImageHeight, 80)}px">`
+    : "";
+  const text = String(message.text ?? "").trim() ? `<div>${esc(message.text)}</div>` : "";
+  return `<div class="pcs-field pcs-message" style="${s}">${img}${text}</div>`;
 }
 
 export class OverlayController {
@@ -449,14 +473,19 @@ export class OverlayController {
   }
 
   getMessages(cfg = this.cfg()) {
-    return (cfg.customMessages ?? []).filter(m => m && m.enabled && String(m.text ?? "").trim() !== "");
+    return (cfg.customMessages ?? [])
+      .filter(m => m && m.enabled && (String(m.text ?? "").trim() !== "" || m.image));
   }
 
   // Build the carousel queue: character slides with sponsor/custom messages
-  // sprinkled in at the configured frequency.
+  // sprinkled in at the configured frequency. Messages are repeated by their
+  // weight so heavier ones come up more often.
   getSlides(cfg = this.cfg()) {
     const actors = this.getActors(cfg).map(a => ({ type: "actor", actor: a }));
-    const messages = this.getMessages(cfg).map(m => ({ type: "message", message: m }));
+    const messages = this.getMessages(cfg).flatMap(m => {
+      const weight = Math.max(1, Math.min(10, Math.round(num(m.weight, 1))));
+      return Array.from({ length: weight }, () => ({ type: "message", message: m }));
+    });
     if (!messages.length) return actors;
     if (!actors.length) return messages;
 
@@ -502,6 +531,7 @@ export class OverlayController {
     this.index = 0;
     this.animating = false;
     this.eventQueue = [];
+    this._animateNextParty = true;
     this._initHpCache();
     this.render();
     this.startRotation();
@@ -514,18 +544,16 @@ export class OverlayController {
   }
 
   _dynamicCss(cfg) {
-    const serif = cfg.fontFamily === "serif";
-    const bodyFont = serif
-      ? `"IM Fell English", Georgia, "Times New Roman", serif`
-      : `"Signika", "Helvetica Neue", Arial, sans-serif`;
-    const dispFont = serif ? `"Cinzel", Georgia, serif` : bodyFont;
+    const font = fontDef(cfg.fontFamily);
+    const bodyFont = font.body;
+    const dispFont = font.display ?? font.body;
 
     const a = Math.clamp(num(cfg.cardOpacity, 1), 0, 1);
     const bg = cfg.cardEnabled
       ? `linear-gradient(180deg, ${lighten(cfg.cardColor, 0.14, a)} 0%, ${hexToRgba(cfg.cardColor, a)} 55%, ${darken(cfg.cardColor, 0.10, a)} 100%)`
       : "transparent";
     const border = cfg.borderEnabled ? `${num(cfg.borderWidth, 2)}px solid ${cfg.borderColor}` : "none";
-    const shadow = cfg.cardEnabled
+    const shadow = (cfg.cardEnabled && cfg.plateShadow !== false)
       ? "box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);"
       : "";
     const textShadow = cfg.cardEnabled ? "none" : "0 2px 4px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)";
@@ -549,8 +577,7 @@ export class OverlayController {
   }
 
   _writeSkeleton(cfg = this.cfg()) {
-    const serif = cfg.fontFamily === "serif";
-    const fonts = serif ? FONT_LINKS : "";
+    const fonts = fontLinks(cfg.fontFamily);
     const css = BASE_CSS + this._dynamicCss(cfg);
 
     let body;
@@ -674,13 +701,17 @@ export class OverlayController {
     }
 
     const activeId = activeCombatantActorId();
-    party.innerHTML = actors.map(a => {
+    const entrance = this._animateNextParty && cfg.plateEntrance !== false;
+    this._animateNextParty = false;
+    party.innerHTML = actors.map((a, i) => {
       const view = getActorViewData(a);
       const parts = buildFieldParts(view, cfg);
       const cls = ["pcs-plate", "pcs-card-bg"];
       if (cfg.showDownState && view.down) cls.push("pcs-down");
       if (cfg.highlightActiveTurn && view.id === activeId) cls.push("pcs-active-turn");
-      const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(a.id, cfg)}`;
+      if (entrance) cls.push("pcs-plate-enter");
+      let style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(a.id, cfg)}`;
+      if (entrance) style += `animation-delay:${(i * 0.08).toFixed(2)}s;`;
       return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
     }).join("");
     this._applyScale(party, cfg);
@@ -901,6 +932,7 @@ export class OverlayController {
     this.animating = false;
     this.eventQueue = [];
     this._writeSkeleton();
+    this._animateNextParty = true;
     this._initHpCache();
     if (this.index >= this.getSlides().length) this.index = 0;
     this.render();

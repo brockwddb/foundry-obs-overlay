@@ -96,6 +96,8 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     cardColor: "#ecdcb4",
     cardOpacity: 1,
     cardRadius: 8,
+    plateShadow: true,
+    plateEntrance: true,
     borderEnabled: true,
     borderColor: "#b08d3c",
     borderWidth: 2,
@@ -130,6 +132,7 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     customMessages: [],
     messageFrequency: 3,
     messageFontSize: 26,
-    messageColor: "#5a3a16"
+    messageColor: "#5a3a16",
+    messageImageHeight: 80
   };
 }

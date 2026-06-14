@@ -169,8 +169,19 @@
   gap: 6px;
 }
 
-.pcs-config .pcs-msg-row input[type="text"] {
+.pcs-config .pcs-msg-row input.pcs-msg-text {
+  flex: 2 1 auto;
+  min-width: 80px;
+}
+
+.pcs-config .pcs-msg-row input.pcs-msg-image {
   flex: 1 1 auto;
+  min-width: 60px;
+}
+
+.pcs-config .pcs-msg-row input.pcs-msg-weight {
+  width: 48px;
+  flex: 0 0 auto;
 }
 
 .pcs-config .pcs-msg-remove {

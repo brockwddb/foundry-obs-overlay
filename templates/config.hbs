@@ -132,6 +132,14 @@
           <input type="number" name="{{this.key}}.cardRadius" value="{{this.cfg.cardRadius}}" min="0" max="80" step="1">
         </div>
         <div class="form-group">
+          <label>{{localize "PCSTATS.PlateShadow"}}</label>
+          <input type="checkbox" name="{{this.key}}.plateShadow" {{checked this.cfg.plateShadow}}>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PlateEntrance"}}</label>
+          <input type="checkbox" name="{{this.key}}.plateEntrance" {{checked this.cfg.plateEntrance}}>
+        </div>
+        <div class="form-group">
           <label>{{localize "PCSTATS.BorderEnabled"}}</label>
           <input type="checkbox" name="{{this.key}}.borderEnabled" {{checked this.cfg.borderEnabled}}>
         </div>
@@ -193,7 +201,10 @@
             {{#each this.messages}}
               <div class="pcs-msg-row">
                 <input type="checkbox" name="{{../key}}.message.{{this.index}}.enabled" {{checked this.enabled}}>
-                <input type="text" name="{{../key}}.message.{{this.index}}.text" value="{{this.text}}" placeholder="{{localize "PCSTATS.MessagePlaceholder"}}">
+                <input type="text" class="pcs-msg-text" name="{{../key}}.message.{{this.index}}.text" value="{{this.text}}" placeholder="{{localize "PCSTATS.MessagePlaceholder"}}">
+                <input type="text" class="pcs-msg-image" name="{{../key}}.message.{{this.index}}.image" value="{{this.image}}" placeholder="{{localize "PCSTATS.MessageImage"}}">
+                <button type="button" class="pcs-msg-browse" title="{{localize "PCSTATS.Browse"}}"><i class="fa-solid fa-image"></i></button>
+                <input type="number" class="pcs-msg-weight" name="{{../key}}.message.{{this.index}}.weight" value="{{this.weight}}" min="1" max="10" step="1" title="{{localize "PCSTATS.MessageWeight"}}">
                 <button type="button" class="pcs-msg-remove" title="{{localize "PCSTATS.RemoveMessage"}}"><i class="fa-solid fa-trash"></i></button>
               </div>
             {{/each}}
@@ -210,6 +221,10 @@
           <div class="form-group">
             <label>{{localize "PCSTATS.MessageColor"}}</label>
             <input type="color" name="{{this.key}}.messageColor" value="{{this.cfg.messageColor}}">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.MessageImageHeight"}}</label>
+            <input type="number" name="{{this.key}}.messageImageHeight" value="{{this.cfg.messageImageHeight}}" min="10" max="600" step="5">
           </div>
         </section>
       {{/if}}

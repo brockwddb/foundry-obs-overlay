@@ -69,13 +69,21 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       })
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-    const messages = (cfg.customMessages ?? [])
-      .map((m, i) => ({ index: i, text: m.text ?? "", enabled: m.enabled !== false }));
+    const messages = (cfg.customMessages ?? []).map((m, i) => ({
+      index: i,
+      text: m.text ?? "",
+      image: m.image ?? "",
+      weight: m.weight ?? 1,
+      enabled: m.enabled !== false
+    }));
 
     const fontFamilies = [
-      { value: "serif", label: "PCSTATS.FontSerif", selected: cfg.fontFamily !== "default" },
-      { value: "default", label: "PCSTATS.FontDefault", selected: cfg.fontFamily === "default" }
-    ];
+      { value: "serif", label: "PCSTATS.FontSerif" },
+      { value: "default", label: "PCSTATS.FontDefault" },
+      { value: "medieval", label: "PCSTATS.FontMedieval" },
+      { value: "uncial", label: "PCSTATS.FontUncial" },
+      { value: "modern", label: "PCSTATS.FontModern" }
+    ].map(o => ({ ...o, selected: (cfg.fontFamily || "serif") === o.value }));
     const portraitShapes = [
       { value: "rounded", label: "PCSTATS.ShapeRounded", selected: cfg.portraitShape === "rounded" },
       { value: "circle", label: "PCSTATS.ShapeCircle", selected: cfg.portraitShape === "circle" },
@@ -144,7 +152,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       color: v.color || ""
     }));
 
-    cfg.fontFamily = data.fontFamily === "default" ? "default" : "serif";
+    cfg.fontFamily = ["serif", "default", "medieval", "uncial", "modern"].includes(data.fontFamily)
+      ? data.fontFamily : "serif";
     cfg.bgColor = data.bgColor || "#00ff00";
     cfg.textColor = data.textColor || "#3a2a14";
     cfg.showHpBar = !!data.showHpBar;
@@ -161,6 +170,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.cardColor = data.cardColor || "#ecdcb4";
     cfg.cardOpacity = Math.clamp(Number(data.cardOpacity ?? 1), 0, 1);
     cfg.cardRadius = Number(data.cardRadius) || 0;
+    cfg.plateShadow = !!data.plateShadow;
+    cfg.plateEntrance = !!data.plateEntrance;
     cfg.borderEnabled = !!data.borderEnabled;
     cfg.borderColor = data.borderColor || "#b08d3c";
     cfg.borderWidth = Number(data.borderWidth) || 0;
@@ -194,11 +205,17 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.cardGap = Math.clamp(Number(data.cardGap) || 0, 0, 600);
     cfg.cardAnimation = CARD_ANIMATIONS.includes(data.cardAnimation) ? data.cardAnimation : "fade";
     cfg.customMessages = Object.values(data.message ?? {})
-      .map(m => ({ text: String(m?.text ?? "").trim(), enabled: !!m?.enabled }))
-      .filter(m => m.text !== "");
+      .map(m => ({
+        text: String(m?.text ?? "").trim(),
+        image: String(m?.image ?? "").trim(),
+        weight: Math.clamp(Number(m?.weight) || 1, 1, 10),
+        enabled: !!m?.enabled
+      }))
+      .filter(m => m.text !== "" || m.image !== "");
     cfg.messageFrequency = Number(data.messageFrequency) || 0;
     cfg.messageFontSize = Number(data.messageFontSize) || 26;
     cfg.messageColor = data.messageColor || "#5a3a16";
+    cfg.messageImageHeight = Math.clamp(Number(data.messageImageHeight) || 80, 10, 600);
 
     return cfg;
   }
@@ -271,22 +288,32 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
     addBtn?.addEventListener("click", () => {
       const idx = counter++;
+      const L = (k) => game.i18n.localize(k);
       const row = document.createElement("div");
       row.className = "pcs-msg-row";
       row.innerHTML = `
         <input type="checkbox" name="${paneKey}.message.${idx}.enabled" checked>
-        <input type="text" name="${paneKey}.message.${idx}.text" value=""
-          placeholder="${game.i18n.localize("PCSTATS.MessagePlaceholder")}">
-        <button type="button" class="pcs-msg-remove" title="${game.i18n.localize("PCSTATS.RemoveMessage")}">
-          <i class="fa-solid fa-trash"></i>
-        </button>`;
+        <input type="text" class="pcs-msg-text" name="${paneKey}.message.${idx}.text" value="" placeholder="${L("PCSTATS.MessagePlaceholder")}">
+        <input type="text" class="pcs-msg-image" name="${paneKey}.message.${idx}.image" value="" placeholder="${L("PCSTATS.MessageImage")}">
+        <button type="button" class="pcs-msg-browse" title="${L("PCSTATS.Browse")}"><i class="fa-solid fa-image"></i></button>
+        <input type="number" class="pcs-msg-weight" name="${paneKey}.message.${idx}.weight" value="1" min="1" max="10" step="1" title="${L("PCSTATS.MessageWeight")}">
+        <button type="button" class="pcs-msg-remove" title="${L("PCSTATS.RemoveMessage")}"><i class="fa-solid fa-trash"></i></button>`;
       list.appendChild(row);
-      row.querySelector('input[type="text"]')?.focus();
+      row.querySelector(".pcs-msg-text")?.focus();
     });
 
     list.addEventListener("click", (ev) => {
-      const btn = ev.target.closest(".pcs-msg-remove");
-      if (btn) btn.closest(".pcs-msg-row")?.remove();
+      const remove = ev.target.closest(".pcs-msg-remove");
+      if (remove) { remove.closest(".pcs-msg-row")?.remove(); return; }
+
+      const browse = ev.target.closest(".pcs-msg-browse");
+      if (browse) {
+        const input = browse.closest(".pcs-msg-row")?.querySelector(".pcs-msg-image");
+        const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+        if (input && FP) {
+          new FP({ type: "image", current: input.value, callback: (path) => { input.value = path; } }).render(true);
+        }
+      }
     });
   }
 
