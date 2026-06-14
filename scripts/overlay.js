@@ -132,6 +132,33 @@ const BASE_CSS = `
   .pcs-conditions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .pcs-condition { display: flex; align-items: center; gap: 4px; }
   .pcs-condition img { height: 1.1em; width: 1.1em; }
+  .pcs-deathsaves { display: flex; align-items: center; gap: 6px; }
+  .pcs-ds-row { display: inline-flex; gap: 3px; }
+  .pcs-pip { width: 0.6em; height: 0.6em; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,0.4); }
+  .pcs-pip-empty { background: rgba(0,0,0,0.15); }
+  .pcs-pip-success { background: #4a7a3a; }
+  .pcs-pip-failure { background: #a01e12; }
+  .pcs-slots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .pcs-slot b { opacity: 0.8; }
+  .pcs-currency { letter-spacing: 0.5px; }
+
+  /* Down / dead and active-turn states */
+  .pcs-down-badge {
+    position: absolute; top: 4px; right: 6px;
+    font-weight: 900; font-size: 0.7em; letter-spacing: 1px;
+    color: #fff; background: rgba(150,20,20,0.9);
+    padding: 1px 6px; border-radius: 4px; z-index: 4;
+  }
+  .pcs-down { filter: grayscale(0.85) brightness(0.72); }
+  .pcs-active-turn {
+    outline: 3px solid var(--pcs-turn, #ffd700);
+    outline-offset: 2px;
+    animation: pcs-turn-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pcs-turn-pulse {
+    0%, 100% { box-shadow: 0 0 8px var(--pcs-turn, #ffd700); }
+    50% { box-shadow: 0 0 22px var(--pcs-turn, #ffd700); }
+  }
 
   /* Combat hit / heal animation */
   .pcs-hit {
@@ -276,9 +303,63 @@ function renderField(f, view, cfg) {
       ).join("");
       return `<div class="pcs-field pcs-conditions" ${fs}>${items}</div>`;
     }
+    case "deathSaves": {
+      if (!view.deathSaves.relevant) return "";
+      const pips = (n, filledClass) =>
+        [0, 1, 2].map(i => `<span class="pcs-pip ${i < n ? filledClass : "pcs-pip-empty"}"></span>`).join("");
+      return `<div class="pcs-field pcs-deathsaves" ${fs}>` +
+        `<span class="pcs-ds-label">Death</span>` +
+        `<span class="pcs-ds-row" title="Successes">${pips(view.deathSaves.success, "pcs-pip-success")}</span>` +
+        `<span class="pcs-ds-row" title="Failures">${pips(view.deathSaves.failure, "pcs-pip-failure")}</span>` +
+        `</div>`;
+    }
+    case "initiative": {
+      const init = actorInitiative(view.id);
+      return init === null ? "" : `<div class="pcs-field" ${fs}>Init ${esc(init)}</div>`;
+    }
+    case "concentration":
+      return view.concentration ? `<div class="pcs-field pcs-conc" ${fs}>✦ Conc.</div>` : "";
+    case "inspiration":
+      return view.inspiration ? `<div class="pcs-field pcs-insp" ${fs}>★ Insp.</div>` : "";
+    case "exhaustion":
+      return view.exhaustion > 0 ? `<div class="pcs-field" ${fs}>Exh. ${esc(view.exhaustion)}</div>` : "";
+    case "spellSlots": {
+      if (!view.spellSlots.length) return "";
+      const cells = view.spellSlots.map(s =>
+        `<span class="pcs-slot"><b>${esc(s.label)}</b> ${esc(s.value)}/${esc(s.max)}</span>`
+      ).join("");
+      return `<div class="pcs-field pcs-slots" ${fs}>${cells}</div>`;
+    }
+    case "passivePerception":
+      return view.passivePerception === null ? "" : `<div class="pcs-field" ${fs}>PP ${esc(view.passivePerception)}</div>`;
+    case "profBonus": {
+      if (view.profBonus === null) return "";
+      const p = Number(view.profBonus);
+      return `<div class="pcs-field" ${fs}>Prof ${p >= 0 ? "+" : ""}${esc(p)}</div>`;
+    }
+    case "currency": {
+      if (!view.currency.length) return "";
+      const cells = view.currency.map(c => `${esc(c.value)}${esc(c.key)}`).join(" ");
+      return `<div class="pcs-field pcs-currency" ${fs}>${cells}</div>`;
+    }
     default:
       return "";
   }
+}
+
+// Current initiative for an actor from the active combat, or null.
+function actorInitiative(actorId) {
+  const combat = game.combat;
+  if (!combat || !combat.started) return null;
+  const c = combat.combatants.find(cb => cb.actorId === actorId);
+  return c && c.initiative !== null && c.initiative !== undefined ? c.initiative : null;
+}
+
+// Actor id whose turn it currently is, or null.
+function activeCombatantActorId() {
+  const combat = game.combat;
+  if (!combat || !combat.started) return null;
+  return combat.combatant?.actorId ?? null;
 }
 
 function buildFieldParts(view, cfg) {
@@ -289,13 +370,16 @@ function buildFieldParts(view, cfg) {
     .filter(html => html !== "");
 }
 
+function downBadge(view, cfg) {
+  if (!cfg.showDownState || !view.down) return "";
+  return `<div class="pcs-down-badge">${esc(game.i18n.localize("PCSTATS.Down"))}</div>`;
+}
+
 function buildCardHTML(view, cfg) {
   const parts = buildFieldParts(view, cfg);
-  if (cfg.showDividers && parts.length > 1) {
-    const divider = `<div class="pcs-divider" style="background:${esc(cfg.dividerColor)}"></div>`;
-    return parts.join(divider);
-  }
-  return parts.join("");
+  const divider = `<div class="pcs-divider" style="background:${esc(cfg.dividerColor)}"></div>`;
+  const body = (cfg.showDividers && parts.length > 1) ? parts.join(divider) : parts.join("");
+  return downBadge(view, cfg) + body;
 }
 
 function buildMessageHTML(message, cfg) {
@@ -515,9 +599,12 @@ export class OverlayController {
 
     if (this.index >= slides.length) this.index = 0;
     const slide = slides[this.index];
-    const html = slide.type === "message"
-      ? buildMessageHTML(slide.message, cfg)
-      : buildCardHTML(getActorViewData(slide.actor), cfg);
+    const view = slide.type === "actor" ? getActorViewData(slide.actor) : null;
+    const html = view ? buildCardHTML(view, cfg) : buildMessageHTML(slide.message, cfg);
+
+    const activeId = activeCombatantActorId();
+    const isDown = !!(view && cfg.showDownState && view.down);
+    const isActiveTurn = !!(view && cfg.highlightActiveTurn && view.id === activeId);
 
     const anim = cfg.cardAnimation || "fade";
     const dur = Math.round(num(cfg.cardTransition, DEFAULT_TRANSITION_S) * 1000);
@@ -526,6 +613,9 @@ export class OverlayController {
       const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
       if (!c || this.animating) return;
       c.innerHTML = html;
+      c.classList.toggle("pcs-down", isDown);
+      c.classList.toggle("pcs-active-turn", isActiveTurn);
+      c.style.setProperty("--pcs-turn", cfg.turnColor || "#ffd700");
       this._applyScale(this._scaleEl(), cfg);
       this._animateCardIn(c, anim, dur);
     };
@@ -549,9 +639,14 @@ export class OverlayController {
       return;
     }
 
+    const activeId = activeCombatantActorId();
     party.innerHTML = actors.map(a => {
-      const parts = buildFieldParts(getActorViewData(a), cfg);
-      return `<div class="pcs-plate pcs-card-bg" data-actor-id="${esc(a.id)}">${parts.join("")}</div>`;
+      const view = getActorViewData(a);
+      const parts = buildFieldParts(view, cfg);
+      const cls = ["pcs-plate", "pcs-card-bg"];
+      if (cfg.showDownState && view.down) cls.push("pcs-down");
+      if (cfg.highlightActiveTurn && view.id === activeId) cls.push("pcs-active-turn");
+      return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="--pcs-turn:${esc(cfg.turnColor || "#ffd700")}">${downBadge(view, cfg)}${parts.join("")}</div>`;
     }).join("");
     this._applyScale(party, cfg);
   }
@@ -757,13 +852,40 @@ export class OverlayController {
     this.startRotation();
   }
 
+  // Combat changed (turn/round/start/end). Refresh the active-turn highlight,
+  // and for the carousel optionally spotlight the current combatant.
+  onUpdateCombat() {
+    if (!this.isOpen || this.animating) return;
+
+    if (this.mode === "carousel" && this.cfg().spotlightCurrentTurn) {
+      const activeId = activeCombatantActorId();
+      if (activeId) {
+        const slides = this.getSlides();
+        const idx = slides.findIndex(s => s.type === "actor" && s.actor?.id === activeId);
+        if (idx >= 0) {
+          this.index = idx;
+          this.stopRotation();        // hold on the current combatant
+          this._renderCarousel();
+          return;
+        }
+      }
+      this.startRotation();           // combat ended / no combatant → resume
+    }
+    this.render();
+  }
+
   registerHooks() {
     this._hookIds.push(["updateActor",
       Hooks.on("updateActor", (actor, changes) => this.onUpdateActor(actor, changes))]);
 
+    const onCombat = () => this.onUpdateCombat();
+    for (const hook of ["updateCombat", "combatTurn", "combatRound", "deleteCombat"]) {
+      this._hookIds.push([hook, Hooks.on(hook, onCombat)]);
+    }
+
     const refresh = () => { if (this.isOpen && !this.animating) this.render(); };
     for (const hook of ["updateToken", "deleteActor",
-      "createActiveEffect", "deleteActiveEffect", "updateActiveEffect", "updateCombat"]) {
+      "createActiveEffect", "deleteActiveEffect", "updateActiveEffect"]) {
       this._hookIds.push([hook, Hooks.on(hook, refresh)]);
     }
   }

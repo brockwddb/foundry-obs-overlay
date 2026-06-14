@@ -2,7 +2,7 @@
   "id": "pc-stats-obs-overlay",
   "title": "PC Stats OBS Overlay",
   "description": "Carousel-style stream overlay banner that displays live player-character stats from Foundry in a popout window for OBS Window Capture.",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "compatibility": {
     "minimum": "13",
     "verified": "14"

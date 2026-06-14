@@ -164,6 +164,10 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.combatAnimDuration = Math.clamp(Number(data.combatAnimDuration) || 3, 1, 15);
     cfg.damageColor = data.damageColor || "#a01e12";
     cfg.healColor = data.healColor || "#3f7d28";
+    cfg.showDownState = !!data.showDownState;
+    cfg.highlightActiveTurn = !!data.highlightActiveTurn;
+    cfg.turnColor = data.turnColor || "#ffd700";
+    cfg.spotlightCurrentTurn = !!data.spotlightCurrentTurn;
 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;

@@ -236,6 +236,24 @@
           <label>{{localize "PCSTATS.HealColor"}}</label>
           <input type="color" name="{{this.key}}.healColor" value="{{this.cfg.healColor}}">
         </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.ShowDownState"}}</label>
+          <input type="checkbox" name="{{this.key}}.showDownState" {{checked this.cfg.showDownState}}>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.HighlightActiveTurn"}}</label>
+          <input type="checkbox" name="{{this.key}}.highlightActiveTurn" {{checked this.cfg.highlightActiveTurn}}>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.TurnColor"}}</label>
+          <input type="color" name="{{this.key}}.turnColor" value="{{this.cfg.turnColor}}">
+        </div>
+        {{#if this.isBanner}}
+          <div class="form-group">
+            <label>{{localize "PCSTATS.SpotlightCurrentTurn"}}</label>
+            <input type="checkbox" name="{{this.key}}.spotlightCurrentTurn" {{checked this.cfg.spotlightCurrentTurn}}>
+          </div>
+        {{/if}}
       </section>
 
       <section class="pcs-general">

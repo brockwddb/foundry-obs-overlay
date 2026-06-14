@@ -8,13 +8,27 @@ export const FIELD_DEFS = {
   ac: "PCSTATS.FieldAC",
   abilities: "PCSTATS.FieldAbilities",
   classLevel: "PCSTATS.FieldClassLevel",
-  conditions: "PCSTATS.FieldConditions"
+  conditions: "PCSTATS.FieldConditions",
+  deathSaves: "PCSTATS.FieldDeathSaves",
+  initiative: "PCSTATS.FieldInitiative",
+  concentration: "PCSTATS.FieldConcentration",
+  inspiration: "PCSTATS.FieldInspiration",
+  exhaustion: "PCSTATS.FieldExhaustion",
+  spellSlots: "PCSTATS.FieldSpellSlots",
+  passivePerception: "PCSTATS.FieldPassivePerception",
+  profBonus: "PCSTATS.FieldProfBonus",
+  currency: "PCSTATS.FieldCurrency"
 };
+
+// Fields shown by default; everything else starts disabled to avoid clutter.
+const DEFAULT_ON_FIELDS = new Set([
+  "portrait", "name", "hp", "ac", "abilities", "classLevel", "conditions"
+]);
 
 export function defaultFieldConfig() {
   return Object.keys(FIELD_DEFS).map((key, i) => ({
     key,
-    enabled: true,
+    enabled: DEFAULT_ON_FIELDS.has(key),
     fontSize: key === "name" ? 28 : 18,
     order: i,
     colorEnabled: false,
@@ -101,6 +115,10 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     combatAnimDuration: 3,
     damageColor: "#a01e12",
     healColor: "#3f7d28",
+    showDownState: true,
+    highlightActiveTurn: true,
+    turnColor: "#ffd700",
+    spotlightCurrentTurn: false,
     // Carousel/banner only:
     rotateInterval: 8,
     cardTransition: 0.25,
