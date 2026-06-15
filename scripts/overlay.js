@@ -648,20 +648,24 @@ export class OverlayController {
     const cfg = this.cfg();
     const width = num(cfg.bannerWidth, 960);
     const height = num(cfg.bannerHeight, 120);
-    this.popup = window.open("", OVERLAYS[this.key].windowName,
+    const nonce = foundry.utils.randomID();
+    const url = this._skeletonUrl(cfg, nonce);
+    this.popup = window.open(url, OVERLAYS[this.key].windowName,
       `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`);
     if (!this.popup) {
       ui.notifications.error(game.i18n.localize("PCSTATS.PopupBlocked"));
+      try { URL.revokeObjectURL(url); } catch (_e) { /* */ }
       return;
     }
-    this._writeSkeleton(cfg);
     this.index = 0;
     this.animating = false;
     this.eventQueue = [];
     this._animateNextParty = true;
     this._initHpCache();
-    this.render();
-    this.startRotation();
+    this._whenReady(nonce, url, () => {
+      this.render();
+      this.startRotation();
+    });
   }
 
   close() {
@@ -670,7 +674,10 @@ export class OverlayController {
     this.popup = null;
   }
 
-  _writeSkeleton(cfg = this.cfg()) {
+  // Full HTML for the popout. Loaded as a real document (blob URL) so the
+  // browser honours <title> as the OS window title (about:blank popups don't,
+  // e.g. Vivaldi shows just "Vivaldi" — which breaks OBS window capture).
+  _skeletonHtml(cfg = this.cfg(), nonce = "") {
     const fonts = fontLinks(cfg.fontFamily);
     const css = BASE_CSS + dynamicCss(cfg);
 
@@ -685,19 +692,34 @@ export class OverlayController {
     }
 
     const title = OVERLAYS[this.key].windowTitle ?? "PC Stats Overlay";
-    const doc = this.popup.document;
-    doc.open();
-    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
       <title>${esc(title)}</title>${fonts}<style>${css}</style></head>
-      <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">
+      <body data-pcs-nonce="${esc(nonce)}" style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">
         ${body}
-      </body></html>`);
-    doc.close();
-    // Force the OS/browser window title (the written <title> isn't always
-    // reflected to the window chrome) so OBS can target each window by name.
-    const setTitle = () => { try { this.popup.document.title = title; } catch (_e) { /* ignore */ } };
-    setTitle();
-    this.popup.setTimeout(setTitle, 100);
+      </body></html>`;
+  }
+
+  _skeletonUrl(cfg, nonce) {
+    return URL.createObjectURL(new Blob([this._skeletonHtml(cfg, nonce)], { type: "text/html" }));
+  }
+
+  // Poll until the popout has finished loading the document for `nonce`, then
+  // run cb (and force the title once more for good measure).
+  _whenReady(nonce, url, cb) {
+    let tries = 0;
+    const check = () => {
+      if (!this.isOpen) { try { URL.revokeObjectURL(url); } catch (_e) { /* */ } return; }
+      const doc = this.popup.document;
+      const ready = doc?.body?.dataset?.pcsNonce === String(nonce) && doc.getElementById("pcs-root");
+      if (ready || tries++ > 100) {
+        try { URL.revokeObjectURL(url); } catch (_e) { /* */ }
+        try { this.popup.document.title = OVERLAYS[this.key].windowTitle ?? "PC Stats Overlay"; } catch (_e) { /* */ }
+        cb();
+        return;
+      }
+      setTimeout(check, 50);
+    };
+    check();
   }
 
   render() {
@@ -1050,14 +1072,20 @@ export class OverlayController {
   // Re-read config and reapply everything (called after the config window saves).
   reload() {
     if (!this.isOpen) return;
+    this.stopRotation();
     this.animating = false;
     this.eventQueue = [];
-    this._writeSkeleton();
     this._animateNextParty = true;
-    this._initHpCache();
-    if (this.index >= this.getSlides().length) this.index = 0;
-    this.render();
-    this.startRotation();
+    const cfg = this.cfg();
+    const nonce = foundry.utils.randomID();
+    const url = this._skeletonUrl(cfg, nonce);
+    this.popup.location.replace(url);
+    this._whenReady(nonce, url, () => {
+      this._initHpCache();
+      if (this.index >= this.getSlides().length) this.index = 0;
+      this.render();
+      this.startRotation();
+    });
   }
 
   // Combat changed (turn/round/start/end). Refresh the active-turn highlight,
