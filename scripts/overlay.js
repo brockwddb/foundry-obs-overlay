@@ -140,6 +140,7 @@ const BASE_CSS = `
     margin-top: 4px;
     border-radius: 4px;
     overflow: hidden;
+    background: #2a2018; /* solid fallback so the empty track is never transparent */
   }
   .pcs-hpbar > span {
     position: absolute;
@@ -304,8 +305,9 @@ function renderField(f, view, cfg) {
       if (view.hp.value === null && view.hp.max === null) return "";
       const temp = view.hp.temp ? ` (+${esc(view.hp.temp)})` : "";
       const fill = `background:linear-gradient(90deg, ${esc(cfg.hpBarLow)}, ${esc(cfg.hpBarHigh)});transform:scaleX(${(view.hp.pct / 100).toFixed(3)})`;
+      const trackBg = cfg.hpBarBg ? `background:${esc(cfg.hpBarBg)};` : "";
       const bar = cfg.showHpBar
-        ? `<div class="pcs-hpbar" style="background:${esc(cfg.hpBarBg)}"><span style="${fill}"></span></div>`
+        ? `<div class="pcs-hpbar" style="${trackBg}"><span style="${fill}"></span></div>`
         : "";
       const healthColor = hpHealthColor(view, cfg);
       const hpStyle = fieldStyle(f) + (healthColor ? `color:${healthColor};` : "");
