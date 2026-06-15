@@ -26,22 +26,6 @@
       <p class="pcs-tab-intro">{{localize this.hint}}</p>
 
       <details class="pcs-group" open>
-        <summary>{{localize "PCSTATS.GroupCharacters"}}</summary>
-        <p class="field-help">{{localize "PCSTATS.SelectCharactersHint"}}</p>
-        <div class="pcs-actor-list">
-          {{#each this.actors}}
-            <label class="pcs-actor-row">
-              <input type="checkbox" name="{{../key}}.actor.{{this.id}}" {{checked this.selected}}>
-              <img src="{{this.img}}" alt="" width="28" height="28">
-              <span>{{this.name}}</span>
-            </label>
-          {{else}}
-            <p class="field-help">{{localize "PCSTATS.NoCharacterActors"}}</p>
-          {{/each}}
-        </div>
-      </details>
-
-      <details class="pcs-group">
         <summary>{{localize "PCSTATS.GroupFields"}}</summary>
         <p class="field-help">{{localize "PCSTATS.FieldsHint"}}</p>
         <table class="pcs-fields">
@@ -389,6 +373,22 @@
     <p class="pcs-tab-intro">{{localize "PCSTATS.CharactersHint"}}</p>
 
     <details class="pcs-group" open>
+      <summary>{{localize "PCSTATS.GroupCharacters"}}</summary>
+      <p class="field-help">{{localize "PCSTATS.SelectCharactersHint"}}</p>
+      <div class="pcs-actor-list">
+        {{#each characters}}
+          <label class="pcs-actor-row">
+            <input type="checkbox" name="actor.{{this.id}}" {{checked this.selected}}>
+            <img src="{{this.img}}" alt="" width="28" height="28">
+            <span>{{this.name}}</span>
+          </label>
+        {{else}}
+          <p class="field-help">{{localize "PCSTATS.NoCharacterActors"}}</p>
+        {{/each}}
+      </div>
+    </details>
+
+    <details class="pcs-group">
       <summary>{{localize "PCSTATS.GroupCharacterStyles"}}</summary>
       <div class="pcs-char-list">
         {{#each characters}}

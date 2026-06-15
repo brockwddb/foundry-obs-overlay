@@ -46,12 +46,6 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const stored = game.settings.get(MODULE_ID, `${key}Config`) ?? {};
     const cfg = foundry.utils.mergeObject(defaultOverlayConfig(key), stored, { inplace: false });
 
-    const selected = new Set(cfg.selectedActors ?? []);
-    const actors = game.actors
-      .filter(a => a.type === "character")
-      .map(a => ({ id: a.id, name: a.name, img: a.img, selected: selected.has(a.id) }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
     const byKey = Object.fromEntries((cfg.fieldConfig ?? []).map(f => [f.key, f]));
     const fields = Object.entries(FIELD_DEFS)
       .map(([fkey, label], i) => {
@@ -102,7 +96,6 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       label: TAB_LABELS[key].label,
       hint: TAB_LABELS[key].hint,
       cfg,
-      actors,
       fields,
       messages,
       fontFamilies,
@@ -113,12 +106,14 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   #prepareCharacters() {
     const styles = game.settings.get(MODULE_ID, "characterStyles") ?? {};
+    const selected = new Set(game.settings.get(MODULE_ID, "selectedActors") ?? []);
     return game.actors
       .filter(a => a.type === "character")
       .map(a => ({
         id: a.id,
         name: a.name,
         img: a.img,
+        selected: selected.has(a.id),
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
         portraitToken: styles[a.id]?.portrait === "token"
@@ -139,10 +134,6 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static #parsePane(paneData, key) {
     const data = paneData ?? {};
     const cfg = defaultOverlayConfig(key);
-
-    cfg.selectedActors = Object.entries(data.actor ?? {})
-      .filter(([, v]) => v)
-      .map(([id]) => id);
 
     cfg.fieldConfig = Object.entries(data.field ?? {}).map(([key, v]) => ({
       key,
@@ -225,6 +216,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   static async #onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object);
 
+    // Global (shared by all overlays): selected characters + per-character styling.
+    const selectedActors = Object.entries(data.actor ?? {})
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    await game.settings.set(MODULE_ID, "selectedActors", selectedActors);
+
     const characterStyles = {};
     for (const [id, v] of Object.entries(data.characters ?? {})) {
       const style = {};
@@ -287,7 +284,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const FDE = foundry.applications?.ux?.FormDataExtended ?? globalThis.FormDataExtended;
     const formData = new FDE(this.element).object;
     const data = foundry.utils.expandObject(formData);
-    return OverlayConfigApp.#parsePane(data[key], key);
+    const cfg = OverlayConfigApp.#parsePane(data[key], key);
+    // Character selection is global — inject the live form value for the preview.
+    cfg.selectedActors = Object.entries(data.actor ?? {})
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    return cfg;
   }
 
   #updatePreview(key, state = null) {
@@ -325,8 +327,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const tgtCfg = foundry.utils.mergeObject(defaultOverlayConfig(tgt),
         game.settings.get(MODULE_ID, `${tgt}Config`) ?? {}, { inplace: false });
       const merged = foundry.utils.mergeObject(tgtCfg, srcCfg, { inplace: false });
-      // Keep the target's own characters and window dimensions.
-      merged.selectedActors = tgtCfg.selectedActors;
+      // Keep the target's own window dimensions.
       merged.bannerWidth = tgtCfg.bannerWidth;
       merged.bannerHeight = tgtCfg.bannerHeight;
       await game.settings.set(MODULE_ID, `${tgt}Config`, merged);

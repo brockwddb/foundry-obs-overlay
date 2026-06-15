@@ -77,7 +77,6 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
   }
 
   return {
-    selectedActors: [],
     fieldConfig: defaultFieldConfig(),
     fontFamily: "serif",              // "serif" (parchment) | "default" (Signika)
     bgColor: "#00ff00",

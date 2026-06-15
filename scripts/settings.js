@@ -11,6 +11,13 @@ export function registerSettings() {
     });
   }
 
+  game.settings.register(MODULE_ID, "selectedActors", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: []
+  });
+
   game.settings.register(MODULE_ID, "characterStyles", {
     scope: "world",
     config: false,

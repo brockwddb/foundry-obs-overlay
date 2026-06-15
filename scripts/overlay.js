@@ -164,13 +164,41 @@ const BASE_CSS = `
   .pcs-currency { letter-spacing: 0.5px; }
 
   /* Down / dead and active-turn states */
-  .pcs-down-badge {
-    position: absolute; top: 4px; right: 6px;
-    font-weight: 900; font-size: 0.7em; letter-spacing: 1px;
-    color: #fff; background: rgba(150,20,20,0.9);
-    padding: 1px 6px; border-radius: 4px; z-index: 4;
+  .pcs-down {
+    filter: grayscale(1) brightness(0.6);
+    animation: pcs-down-pulse 1.7s ease-in-out infinite;
   }
-  .pcs-down { filter: grayscale(0.85) brightness(0.72); }
+  .pcs-down::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(40,0,0,0.4);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+  }
+  @keyframes pcs-down-pulse {
+    0%, 100% { box-shadow: 0 0 0 rgba(170,20,20,0); }
+    50% { box-shadow: 0 0 16px 2px rgba(170,20,20,0.55); }
+  }
+  .pcs-down-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-7deg);
+    font-weight: 900;
+    font-size: 1.05em;
+    letter-spacing: 2px;
+    color: #fff;
+    background: rgba(155,20,20,0.94);
+    padding: 2px 14px;
+    border-radius: 4px;
+    border: 2px solid rgba(255,255,255,0.85);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    z-index: 5;
+    /* not affected by the parent grayscale: filter is applied on the parent,
+       but the stamp reads clearly over the darkened card */
+  }
   .pcs-active-turn {
     outline: 3px solid var(--pcs-turn, #ffd700);
     outline-offset: 2px;
@@ -247,6 +275,9 @@ function num(v, fallback = 0) {
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 }
+
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+function lcm(a, b) { return (a && b) ? Math.abs(a * b) / gcd(a, b) : 0; }
 
 // Mix a hex color toward white (255) or black (0) by amt, returning rgba.
 function mix(hex, target, amt, alpha) {
@@ -546,10 +577,12 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
   let inner;
   if (mode === "carousel") {
     const cardClass = column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
+    const view = previewViews(cfg, 1)[0];
+    const downCls = (state !== "message" && cfg.showDownState && view.down) ? " pcs-down" : "";
     const content = state === "message"
       ? buildMessageHTML(sampleMessage(cfg), cfg)
-      : buildCardHTML(previewViews(cfg, 1)[0], cfg) + deco.overlay;
-    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass} ${deco.cls}" style="${deco.varStyle}">${content}</div></div></div>`;
+      : buildCardHTML(view, cfg) + deco.overlay;
+    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass} ${deco.cls}${downCls}" style="${deco.varStyle}">${content}</div></div></div>`;
   } else {
     const plates = previewViews(cfg, 4).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
     if (mode === "vertical") {
@@ -559,8 +592,25 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
     }
   }
 
+  // Scale the content to fit inside the small preview iframe (which is much
+  // shorter than the real capture window) so nothing is clipped.
+  const fitScript = `<script>(function(){
+    function fit(){
+      var root=document.getElementById('pcs-root');
+      var el=root&&root.firstElementChild;
+      if(!el)return;
+      el.style.transform='none';
+      var w=el.scrollWidth||el.offsetWidth, h=el.scrollHeight||el.offsetHeight;
+      if(!w||!h)return;
+      var s=Math.min((window.innerWidth-10)/w,(window.innerHeight-10)/h,1);
+      el.style.transformOrigin='center center';
+      el.style.transform='scale('+s.toFixed(4)+')';
+    }
+    fit(); window.addEventListener('resize',fit); setTimeout(fit,60);
+  })();<\/script>`;
+
   return `<!DOCTYPE html><html><head><meta charset="utf-8">${fonts}<style>${css}</style></head>
-    <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${inner}</body></html>`;
+    <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${inner}${fitScript}</body></html>`;
 }
 
 function buildMessageHTML(message, cfg) {
@@ -597,8 +647,13 @@ export class OverlayController {
     return foundry.utils.mergeObject(defaultOverlayConfig(this.key), stored, { inplace: false });
   }
 
-  getActors(cfg = this.cfg()) {
-    return (cfg.selectedActors ?? []).map(id => game.actors.get(id)).filter(a => a);
+  // Selected characters are global (shared by all overlays).
+  _selectedIds() {
+    return game.settings.get(MODULE_ID, "selectedActors") ?? [];
+  }
+
+  getActors() {
+    return this._selectedIds().map(id => game.actors.get(id)).filter(a => a);
   }
 
   getMessages(cfg = this.cfg()) {
@@ -607,10 +662,12 @@ export class OverlayController {
   }
 
   // Build the carousel queue: character slides with sponsor/custom messages
-  // sprinkled in at the configured frequency. Messages are repeated by their
-  // weight so heavier ones come up more often.
+  // sprinkled in after every `messageFrequency` characters. The sequence spans
+  // whole rotation cycles (LCM of character count and frequency) so a message
+  // shows once per N characters even when N > the number of characters — and it
+  // loops seamlessly. Messages are repeated by weight so heavier ones recur.
   getSlides(cfg = this.cfg()) {
-    const actors = this.getActors(cfg).map(a => ({ type: "actor", actor: a }));
+    const actors = this.getActors().map(a => ({ type: "actor", actor: a }));
     const messages = this.getMessages(cfg).flatMap(m => {
       const weight = Math.max(1, Math.min(10, Math.round(num(m.weight, 1))));
       return Array.from({ length: weight }, () => ({ type: "message", message: m }));
@@ -621,16 +678,16 @@ export class OverlayController {
     const freq = num(cfg.messageFrequency, 0);
     if (freq <= 0) return actors;
 
+    const total = lcm(actors.length, freq);
     const out = [];
     let mi = 0;
-    actors.forEach((slide, i) => {
-      out.push(slide);
+    for (let i = 0; i < total; i++) {
+      out.push(actors[i % actors.length]);
       if ((i + 1) % freq === 0) {
         out.push(messages[mi % messages.length]);
         mi++;
       }
-    });
-    if (mi === 0) out.push(...messages);
+    }
     return out;
   }
 
@@ -817,7 +874,7 @@ export class OverlayController {
     if (!party) return;
 
     const cfg = this.cfg();
-    const actors = this.getActors(cfg);
+    const actors = this.getActors();
     if (!actors.length) {
       party.innerHTML = `<div class="pcs-field" style="font-size:20px">${game.i18n.localize("PCSTATS.NoCharacters")}</div>`;
       return;
@@ -909,7 +966,7 @@ export class OverlayController {
 
     const inCombat = !!(game.combat && game.combat.started);
     const combatOnly = cfg.animationsCombatOnly !== false;
-    const selected = (cfg.selectedActors ?? []).includes(actor.id);
+    const selected = this._selectedIds().includes(actor.id);
 
     if (hpChanged && cfg.combatAnimations && (!combatOnly || inCombat) && selected
       && oldVal != null && newVal != null && newVal !== oldVal) {
@@ -1118,7 +1175,7 @@ export class OverlayController {
     const cfg = this.cfg();
     if (!cfg.diceFlair) return;
     const actorId = message.speaker?.actor;
-    if (!actorId || !(cfg.selectedActors ?? []).includes(actorId)) return;
+    if (!actorId || !this._selectedIds().includes(actorId)) return;
     const flair = rollFlairType(message);
     if (!flair) return;
     const event = { kind: "flair", actorId, flair };
