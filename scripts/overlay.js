@@ -567,50 +567,56 @@ function previewPlateHTML(view, cfg, deco) {
   return `<div class="${cls.join(" ")}" style="${style}">${downBadge(view, cfg)}${parts.join("")}${deco?.overlay ?? ""}</div>`;
 }
 
+// Extra CSS for the preview only: a simple centered wrapper that we scale to
+// fit, instead of the real overlay's bottom-aligned / full-width roots.
+const PREVIEW_CSS = `
+  #pcs-root.pcs-preview-root { align-items: center; justify-content: center; }
+  #pcs-fit { transform-origin: center center; display: inline-flex; }
+  .pcs-prev-row { display: flex; align-items: stretch; gap: 14px; }
+  .pcs-prev-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+`;
+
 // Build a self-contained HTML document for the live preview iframe.
 // state: null | "message" | "damage" | "heal" | "crit" | "fumble".
 export function buildPreviewDocument(cfg, mode, column, state = null) {
-  const css = BASE_CSS + dynamicCss(cfg);
+  const css = BASE_CSS + dynamicCss(cfg) + PREVIEW_CSS;
   const fonts = fontLinks(cfg.fontFamily);
   const deco = stateDecoration(cfg, state);
 
-  let inner;
+  let content;
   if (mode === "carousel") {
     const cardClass = column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
     const view = previewViews(cfg, 1)[0];
     const downCls = (state !== "message" && cfg.showDownState && view.down) ? " pcs-down" : "";
-    const content = state === "message"
+    const inner = state === "message"
       ? buildMessageHTML(sampleMessage(cfg), cfg)
       : buildCardHTML(view, cfg) + deco.overlay;
-    inner = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass} ${deco.cls}${downCls}" style="${deco.varStyle}">${content}</div></div></div>`;
+    content = `<div id="pcs-card" class="${cardClass} ${deco.cls}${downCls}" style="${deco.varStyle}">${inner}</div>`;
   } else {
-    const plates = previewViews(cfg, 4).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
-    if (mode === "vertical") {
-      inner = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical">${plates}</div></div>`;
-    } else {
-      inner = `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party">${plates}</div></div>`;
-    }
+    const limit = mode === "vertical" ? 2 : 3; // column is taller, show fewer
+    const plates = previewViews(cfg, limit).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
+    const dir = mode === "vertical" ? "pcs-prev-col" : "pcs-prev-row";
+    content = `<div class="${dir}">${plates}</div>`;
   }
 
-  // Scale the content to fit inside the small preview iframe (which is much
-  // shorter than the real capture window) so nothing is clipped.
+  const body = `<div id="pcs-root" class="pcs-preview-root"><div id="pcs-fit">${content}</div></div>`;
+
+  // Scale the wrapper to fit the small preview iframe so nothing is clipped.
   const fitScript = `<script>(function(){
     function fit(){
-      var root=document.getElementById('pcs-root');
-      var el=root&&root.firstElementChild;
+      var el=document.getElementById('pcs-fit');
       if(!el)return;
       el.style.transform='none';
       var w=el.scrollWidth||el.offsetWidth, h=el.scrollHeight||el.offsetHeight;
       if(!w||!h)return;
-      var s=Math.min((window.innerWidth-10)/w,(window.innerHeight-10)/h,1);
-      el.style.transformOrigin='center center';
+      var s=Math.min((window.innerWidth-12)/w,(window.innerHeight-12)/h,1);
       el.style.transform='scale('+s.toFixed(4)+')';
     }
     fit(); window.addEventListener('resize',fit); setTimeout(fit,60);
   })();<\/script>`;
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8">${fonts}<style>${css}</style></head>
-    <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${inner}${fitScript}</body></html>`;
+    <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${body}${fitScript}</body></html>`;
 }
 
 function buildMessageHTML(message, cfg) {

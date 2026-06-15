@@ -44,6 +44,7 @@
   "PCSTATS.GroupWindow": "Capture window",
   "PCSTATS.GroupWindowHelp": "The pop-out window OBS captures. Set the chroma-key color and the window size here.",
   "PCSTATS.GroupCharacterStyles": "Per-character styling",
+  "PCSTATS.StylingHint": "Only the characters selected above appear here.",
   "PCSTATS.HelpCardOpacity": "0 = transparent, 1 = solid.",
   "PCSTATS.HelpTexture": "Optional: use an image as the plate background instead of the color (e.g. a parchment texture). Leave blank to use the color above.",
   "PCSTATS.HelpHpByHealth": "When on, the HP numbers recolor by remaining health using the three colors and thresholds below.",

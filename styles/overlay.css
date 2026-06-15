@@ -96,7 +96,7 @@
 
 .pcs-config .pcs-preview-frame {
   width: 100%;
-  height: 150px;
+  height: 168px;
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 6px;
   background: repeating-conic-gradient(#808080 0% 25%, #a0a0a0 0% 50%) 50% / 16px 16px;
@@ -159,13 +159,21 @@
   border-bottom: 1px solid var(--color-border, #4a4a4a);
 }
 
+/* Indent group content with padding (not margin) + border-box so full-width
+   children don't overflow and force a horizontal scrollbar. */
 .pcs-config details.pcs-group > *:not(summary) {
-  margin-left: 12px;
-  margin-right: 12px;
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .pcs-config details.pcs-group > *:last-child {
   margin-bottom: 10px;
+}
+
+.pcs-config details.pcs-group {
+  overflow: hidden;
 }
 
 /* --- Help / description text ----------------------------------------------- */

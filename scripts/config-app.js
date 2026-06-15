@@ -258,7 +258,23 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         OverlayConfigApp.#pickImage(btn.parentElement?.querySelector(".pcs-texture-input"));
       });
     }
+    this.#wireCharacterStyles();
     this.#wirePreviews();
+  }
+
+  // Show per-character styling rows only for characters that are selected.
+  #wireCharacterStyles() {
+    const boxes = [...this.element.querySelectorAll('.pcs-actor-list input[name^="actor."]')];
+    if (!boxes.length) return;
+    const sync = () => {
+      const on = new Set();
+      for (const cb of boxes) if (cb.checked) on.add(cb.name.slice("actor.".length));
+      for (const row of this.element.querySelectorAll(".pcs-char-row[data-style-id]")) {
+        row.style.display = on.has(row.dataset.styleId) ? "" : "none";
+      }
+    };
+    for (const cb of boxes) cb.addEventListener("change", sync);
+    sync();
   }
 
   #wirePreviews() {

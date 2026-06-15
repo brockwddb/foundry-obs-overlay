@@ -390,9 +390,10 @@
 
     <details class="pcs-group">
       <summary>{{localize "PCSTATS.GroupCharacterStyles"}}</summary>
+      <p class="field-help">{{localize "PCSTATS.StylingHint"}}</p>
       <div class="pcs-char-list">
         {{#each characters}}
-          <div class="pcs-char-row">
+          <div class="pcs-char-row" data-style-id="{{this.id}}">
             <img src="{{this.img}}" alt="" width="32" height="32">
             <span class="pcs-char-name">{{this.name}}</span>
             <label class="pcs-char-opt">
