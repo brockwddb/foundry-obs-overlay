@@ -693,6 +693,11 @@ export class OverlayController {
         ${body}
       </body></html>`);
     doc.close();
+    // Force the OS/browser window title (the written <title> isn't always
+    // reflected to the window chrome) so OBS can target each window by name.
+    const setTitle = () => { try { this.popup.document.title = title; } catch (_e) { /* ignore */ } };
+    setTitle();
+    this.popup.setTimeout(setTitle, 100);
   }
 
   render() {

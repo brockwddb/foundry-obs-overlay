@@ -1,7 +1,7 @@
 /* Config dialog styling (main Foundry page only — the popout has its own inline CSS). */
 /* Cap the window height and let the body scroll so the Save footer stays visible. */
 #pcstats-overlay-config {
-  max-height: 90vh;
+  max-height: 92vh;
 }
 
 #pcstats-overlay-config .window-content {
@@ -13,22 +13,28 @@
 #pcstats-overlay-config .pcs-config {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 
 #pcstats-overlay-config .form-footer {
   flex: 0 0 auto;
 }
 
+/* --- Tabs ------------------------------------------------------------------ */
 .pcs-config .pcs-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
   border-bottom: 2px solid var(--color-border, #555);
   margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--color-bg, var(--background, #21201d));
 }
 
 .pcs-config .pcs-tab {
-  padding: 6px 18px;
+  padding: 6px 16px;
   cursor: pointer;
   font-weight: 600;
   text-decoration: none;
@@ -57,52 +63,35 @@
   display: block;
 }
 
-.pcs-config .pcs-reset-section {
-  margin-top: 8px;
-  display: flex;
-  gap: 8px;
+.pcs-config .pcs-tab-intro {
+  font-size: 0.9em;
+  color: var(--color-text-secondary, #aaa);
+  margin: 0 0 10px;
+  line-height: 1.4;
 }
 
-.pcs-config .pcs-reset,
-.pcs-config .pcs-test {
-  width: auto;
-}
-
-.pcs-config .pcs-tools {
-  margin-top: 14px;
-  border-top: 1px solid var(--color-border-light-tertiary, #999);
-  padding-top: 8px;
-}
-
-.pcs-config .pcs-tools .form-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 6px 0;
-}
-
-.pcs-config .pcs-tools button,
-.pcs-config .pcs-tools select {
-  width: auto;
-}
-
-.pcs-config section {
-  margin-bottom: 12px;
-}
-
+/* --- Live preview ---------------------------------------------------------- */
 .pcs-config .pcs-preview {
   position: sticky;
-  top: 0;
+  top: 34px;
   z-index: 3;
   background: var(--color-bg, var(--background, #21201d));
-  padding: 4px 0 6px;
-  margin-bottom: 8px;
+  padding: 6px 0 8px;
+  margin-bottom: 10px;
   box-shadow: 0 6px 8px -6px rgba(0, 0, 0, 0.7);
 }
 
-.pcs-config .pcs-preview h3 {
-  margin-top: 0;
+.pcs-config .pcs-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.pcs-config .pcs-preview-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .pcs-config .pcs-preview-frame {
@@ -110,32 +99,117 @@
   height: 150px;
   border: 1px solid var(--color-border-light-tertiary, #999);
   border-radius: 6px;
-  background:
-    repeating-conic-gradient(#808080 0% 25%, #a0a0a0 0% 50%) 50% / 16px 16px;
+  background: repeating-conic-gradient(#808080 0% 25%, #a0a0a0 0% 50%) 50% / 16px 16px;
 }
 
 .pcs-config .pcs-preview-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 4px;
 }
 
 .pcs-config .pcs-preview-actions .pcs-prev-btn {
   width: auto;
   flex: 0 0 auto;
-  font-size: 0.85em;
+  font-size: 0.82em;
   padding: 2px 8px;
 }
 
-.pcs-config h3 {
-  border-bottom: 1px solid var(--color-border-light-tertiary, #999);
-  padding-bottom: 4px;
+/* --- Collapsible setting groups -------------------------------------------- */
+.pcs-config details.pcs-group {
+  border: 1px solid var(--color-border, #4a4a4a);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.025);
 }
 
+.pcs-config details.pcs-group > summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 1.02em;
+  letter-spacing: 0.02em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.pcs-config details.pcs-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pcs-config details.pcs-group > summary::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+  opacity: 0.7;
+}
+
+.pcs-config details.pcs-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.pcs-config details.pcs-group[open] > summary {
+  border-bottom: 1px solid var(--color-border, #4a4a4a);
+}
+
+.pcs-config details.pcs-group > *:not(summary) {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.pcs-config details.pcs-group > *:last-child {
+  margin-bottom: 10px;
+}
+
+/* --- Help / description text ----------------------------------------------- */
+.pcs-config .field-help {
+  font-size: 0.84em;
+  color: var(--color-text-secondary, #9b9b9b);
+  line-height: 1.35;
+  margin: 6px 0 8px;
+}
+
+.pcs-config .field-help.inline {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+/* --- Form groups ----------------------------------------------------------- */
+.pcs-config .form-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 5px 0;
+}
+
+.pcs-config .form-group > label:first-child {
+  flex: 0 0 210px;
+  color: var(--color-text-primary, #e8e8e8);
+}
+
+.pcs-config .form-group input[type="number"],
+.pcs-config .form-group input[type="text"],
+.pcs-config .form-group select {
+  flex: 0 1 auto;
+}
+
+.pcs-config .form-group input[type="color"] {
+  flex: 0 0 auto;
+  width: 48px;
+  min-width: 48px;
+}
+
+/* --- Characters / actor selection ------------------------------------------ */
 .pcs-config .pcs-actor-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 4px;
   max-height: 220px;
   overflow-y: auto;
@@ -154,12 +228,20 @@
   flex: 0 0 auto;
 }
 
+/* --- Display fields table -------------------------------------------------- */
 .pcs-config table.pcs-fields {
   width: 100%;
   border-collapse: collapse;
 }
 
-.pcs-config table.pcs-fields th,
+.pcs-config table.pcs-fields th {
+  text-align: left;
+  padding: 4px 6px;
+  font-size: 0.85em;
+  color: var(--color-text-secondary, #aaa);
+  border-bottom: 1px solid var(--color-border, #4a4a4a);
+}
+
 .pcs-config table.pcs-fields td {
   text-align: left;
   padding: 3px 6px;
@@ -171,10 +253,6 @@
 
 .pcs-config table.pcs-fields th.pcs-handle-col {
   width: 28px;
-}
-
-.pcs-config .pcs-field-row {
-  background: transparent;
 }
 
 .pcs-config .pcs-field-row.dragging {
@@ -198,22 +276,20 @@
   gap: 6px;
 }
 
-.pcs-config .pcs-appearance .form-group,
-.pcs-config .pcs-general .form-group,
-.pcs-config .pcs-messages .form-group,
-.pcs-config .pcs-combat .form-group {
+/* --- Sponsor messages ------------------------------------------------------ */
+.pcs-config .pcs-msg-head {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0;
+  gap: 6px;
+  font-size: 0.78em;
+  color: var(--color-text-secondary, #9b9b9b);
+  padding: 0 2px 2px;
 }
 
-.pcs-config .pcs-appearance .form-group label,
-.pcs-config .pcs-general .form-group label,
-.pcs-config .pcs-messages .form-group label,
-.pcs-config .pcs-combat .form-group label {
-  flex: 0 0 200px;
-}
+.pcs-config .pcs-msg-h-enable { flex: 0 0 18px; }
+.pcs-config .pcs-msg-h-text { flex: 2 1 auto; }
+.pcs-config .pcs-msg-h-image { flex: 1 1 auto; }
+.pcs-config .pcs-msg-h-weight { flex: 0 0 86px; text-align: center; }
+.pcs-config .pcs-msg-h-del { flex: 0 0 28px; }
 
 .pcs-config .pcs-msg-rows {
   display: flex;
@@ -243,7 +319,8 @@
   flex: 0 0 auto;
 }
 
-.pcs-config .pcs-msg-remove {
+.pcs-config .pcs-msg-row .pcs-msg-browse,
+.pcs-config .pcs-msg-row .pcs-msg-remove {
   flex: 0 0 auto;
   width: auto;
   line-height: 1;
@@ -254,6 +331,7 @@
   margin-bottom: 8px;
 }
 
+/* --- Per-character styling -------------------------------------------------- */
 .pcs-config .pcs-char-list {
   display: flex;
   flex-direction: column;
@@ -283,4 +361,33 @@
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
+}
+
+/* --- Tools (copy / export-import) ------------------------------------------ */
+.pcs-config .pcs-group .form-group select.pcs-copy-source,
+.pcs-config .pcs-group .form-group select.pcs-copy-target {
+  flex: 0 1 auto;
+}
+
+.pcs-config .pcs-group .form-group .pcs-copy-apply,
+.pcs-config .pcs-group .form-group .pcs-export,
+.pcs-config .pcs-group .form-group .pcs-import {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+/* The copy/export rows don't want the 210px label column. */
+.pcs-config .pcs-group .form-group > label.pcs-inline-label {
+  flex: 0 0 auto;
+}
+
+/* --- Per-pane action buttons (test / reset) -------------------------------- */
+.pcs-config .pcs-pane-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pcs-config .pcs-pane-actions button {
+  width: auto;
 }
