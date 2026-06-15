@@ -197,6 +197,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.cardTransition = Math.clamp(Number(data.cardTransition ?? 0.25), 0, 5);
     cfg.cardGap = Math.clamp(Number(data.cardGap) || 0, 0, 600);
     cfg.cardAnimation = CARD_ANIMATIONS.includes(data.cardAnimation) ? data.cardAnimation : "fade";
+    cfg.featuredIntro = !!data.featuredIntro;
+    cfg.featuredText = String(data.featuredText ?? "").trim() || "Featured Character";
+    cfg.introDuration = Math.clamp(Number(data.introDuration ?? 1.8), 0.3, 10);
     cfg.customMessages = Object.values(data.message ?? {})
       .map(m => ({
         text: String(m?.text ?? "").trim(),

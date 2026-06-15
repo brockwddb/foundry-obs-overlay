@@ -392,10 +392,31 @@
 /* --- Per-pane action buttons (test / reset) -------------------------------- */
 .pcs-config .pcs-pane-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin: 16px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border, #4a4a4a);
 }
 
 .pcs-config .pcs-pane-actions button {
   width: auto;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+}
+
+/* Save footer */
+#pcstats-overlay-config .form-footer {
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 8px 2px 2px;
+  margin-top: 4px;
+  border-top: 1px solid var(--color-border, #4a4a4a);
+}
+
+#pcstats-overlay-config .form-footer button {
+  padding: 6px 16px;
 }

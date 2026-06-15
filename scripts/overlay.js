@@ -250,6 +250,40 @@ const BASE_CSS = `
   .pcs-flair-fumble { animation: pcs-flash 1.2s ease-out, pcs-shake 0.5s ease-in-out; }
   .pcs-flair-text { font-size: 2.9em; font-weight: 900; letter-spacing: 1px; }
 
+  /* Featured-character intro */
+  .pcs-featured {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .pcs-featured-portrait {
+    height: 2.6em;
+    width: 2.6em;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0.95;
+    animation: pcs-featured-portrait 0.7s ease-out;
+  }
+  .pcs-featured-label {
+    font-size: 0.72em;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    opacity: 0.85;
+    animation: pcs-featured-label 0.8s ease-out both;
+  }
+  .pcs-featured-name {
+    font-weight: 900;
+    font-size: 1.7em;
+    line-height: 1.1;
+    animation: pcs-featured-name 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  @keyframes pcs-featured-portrait { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 0.95; transform: none; } }
+  @keyframes pcs-featured-label { 0% { opacity: 0; letter-spacing: 14px; } 100% { opacity: 0.85; letter-spacing: 5px; } }
+  @keyframes pcs-featured-name { 0% { opacity: 0; transform: translateY(10px) scale(0.92); } 100% { opacity: 1; transform: none; } }
+
   /* Card transition animations (banner) */
   @keyframes pcs-fade-out { to { opacity: 0; } }
   @keyframes pcs-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -601,11 +635,20 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
 
   const body = `<div id="pcs-root" class="pcs-preview-root"><div id="pcs-fit">${content}</div></div>`;
 
-  // Scale the wrapper to fit the small preview iframe so nothing is clipped.
+  // Even out plate sizes, then scale the wrapper to fit the preview iframe.
   const fitScript = `<script>(function(){
+    function equalize(){
+      var ps=[].slice.call(document.querySelectorAll('.pcs-plate'));
+      if(ps.length<2)return;
+      ps.forEach(function(p){p.style.width='';p.style.minHeight='';});
+      var mw=0,mh=0;
+      ps.forEach(function(p){mw=Math.max(mw,p.offsetWidth);mh=Math.max(mh,p.offsetHeight);});
+      ps.forEach(function(p){p.style.width=mw+'px';p.style.minHeight=mh+'px';});
+    }
     function fit(){
       var el=document.getElementById('pcs-fit');
       if(!el)return;
+      equalize();
       el.style.transform='none';
       var w=el.scrollWidth||el.offsetWidth, h=el.scrollHeight||el.offsetHeight;
       if(!w||!h)return;
@@ -617,6 +660,17 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8">${fonts}<style>${css}</style></head>
     <body style="background:${esc(cfg.bgColor)};color:${esc(cfg.textColor)}">${body}${fitScript}</body></html>`;
+}
+
+// Animated "Featured Character" lead-in shown before each banner card.
+function buildIntroHTML(view, cfg) {
+  const useToken = characterStyle(view.id).portrait === "token";
+  const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
+  const portrait = src ? `<img class="pcs-featured-portrait" src="${esc(src)}">` : "";
+  const label = esc(cfg.featuredText || "Featured Character");
+  return `<div class="pcs-featured">${portrait}` +
+    `<div class="pcs-featured-label">${label}</div>` +
+    `<div class="pcs-featured-name pcs-name">${esc(view.name)}</div></div>`;
 }
 
 function buildMessageHTML(message, cfg) {
@@ -867,12 +921,34 @@ export class OverlayController {
       this._animateCardIn(c, anim, dur);
     };
 
+    // Featured-character lead-in: show the animated intro, then transition into
+    // the real card. Only for actor slides on a banner with the option enabled.
+    const showIntro = () => {
+      const c = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
+      if (!c || this.animating) return;
+      c.classList.remove("pcs-down", "pcs-active-turn");
+      c.style.border = "";
+      c.innerHTML = buildIntroHTML(view, cfg);
+      this._applyScale(this._scaleEl(), cfg);
+      this._animateCardIn(c, anim, dur);
+      const introMs = Math.round(num(cfg.introDuration, 1.8) * 1000);
+      this.popup.setTimeout(() => {
+        const c2 = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
+        if (!c2 || this.animating) return;
+        if (anim === "none" || dur <= 0) { swap(); return; }
+        this._animateCardOut(c2, anim, dur);
+        this.popup.setTimeout(swap, dur);
+      }, introMs);
+    };
+
+    const first = (view && cfg.featuredIntro) ? showIntro : swap;
+
     if (skipOut || anim === "none" || dur <= 0) {
-      swap();
+      first();
       return;
     }
     this._animateCardOut(card, anim, dur);
-    this.popup.setTimeout(swap, dur);
+    this.popup.setTimeout(first, dur);
   }
 
   _renderParty() {
@@ -900,7 +976,18 @@ export class OverlayController {
       if (entrance) style += `animation-delay:${(i * 0.08).toFixed(2)}s;`;
       return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
     }).join("");
+    this._equalizePlates(party);
     this._applyScale(party, cfg);
+  }
+
+  // Size every plate to the largest one so the row/column looks even.
+  _equalizePlates(party) {
+    const plates = [...party.querySelectorAll(".pcs-plate")];
+    if (plates.length < 2) return;
+    plates.forEach(p => { p.style.width = ""; p.style.minHeight = ""; });
+    let maxW = 0, maxH = 0;
+    plates.forEach(p => { maxW = Math.max(maxW, p.offsetWidth); maxH = Math.max(maxH, p.offsetHeight); });
+    plates.forEach(p => { p.style.width = `${maxW}px`; p.style.minHeight = `${maxH}px`; });
   }
 
   _advanceIndex() {
