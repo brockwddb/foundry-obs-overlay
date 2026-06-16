@@ -117,7 +117,10 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         intro: styles[a.id]?.intro || "",
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
-        portraitToken: styles[a.id]?.portrait === "token"
+        portraitToken: styles[a.id]?.portrait === "token",
+        cropX: styles[a.id]?.crop?.x ?? 50,
+        cropY: styles[a.id]?.crop?.y ?? 0,
+        cropZoom: styles[a.id]?.crop?.zoom ?? 1
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -233,6 +236,13 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (v?.useToken) style.portrait = "token";
       const intro = String(v?.intro ?? "").trim();
       if (intro) style.intro = intro;
+      // Portrait crop: only persist when it differs from the default framing.
+      const cropX = Math.clamp(Number(v?.cropX ?? 50), 0, 100);
+      const cropY = Math.clamp(Number(v?.cropY ?? 0), 0, 100);
+      const cropZoom = Math.clamp(Number(v?.cropZoom ?? 1), 1, 5);
+      if (cropX !== 50 || cropY !== 0 || cropZoom !== 1) {
+        style.crop = { x: cropX, y: cropY, zoom: cropZoom };
+      }
       if (Object.keys(style).length) characterStyles[id] = style;
     }
     await game.settings.set(MODULE_ID, "characterStyles", characterStyles);
@@ -265,7 +275,28 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       });
     }
     this.#wireCharacterStyles();
+    this.#wireCropPreviews();
     this.#wirePreviews();
+  }
+
+  // Live-update each character row's thumbnail as its crop fields change, so the
+  // focal point / zoom can be dialed in without saving.
+  #wireCropPreviews() {
+    for (const row of this.element.querySelectorAll(".pcs-char-row[data-style-id]")) {
+      const img = row.querySelector(".pcs-char-thumb-img");
+      if (!img) continue;
+      const x = row.querySelector('input[name$=".cropX"]');
+      const y = row.querySelector('input[name$=".cropY"]');
+      const z = row.querySelector('input[name$=".cropZoom"]');
+      const apply = () => {
+        const cx = x?.value ?? 50, cy = y?.value ?? 0, cz = z?.value ?? 1;
+        img.style.objectPosition = `${cx}% ${cy}%`;
+        img.style.transformOrigin = `${cx}% ${cy}%`;
+        img.style.transform = `scale(${cz})`;
+      };
+      for (const el of [x, y, z]) el?.addEventListener("input", apply);
+      apply();
+    }
   }
 
   // Show per-character styling rows only for characters that are selected.

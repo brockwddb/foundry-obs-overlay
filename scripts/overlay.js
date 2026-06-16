@@ -113,13 +113,22 @@ const BASE_CSS = `
   }
   .pcs-plate .pcs-field { text-align: center; }
   .pcs-plate .pcs-hpbar { min-width: 90px; }
-  .pcs-portrait {
+  /* Square frame that carries the border/shape and clips the (optionally
+     zoomed) portrait. The inner <img> handles the per-character crop. */
+  .pcs-portrait-frame {
     aspect-ratio: 1 / 1;
-    object-fit: cover;
-    object-position: center top;
+    overflow: hidden;
     background: rgba(0,0,0,0.15);
     border: 2px solid rgba(255,255,255,0.55);
     box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    flex: 0 0 auto;
+  }
+  .pcs-portrait {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center top;
   }
   .pcs-divider {
     width: 2px;
@@ -263,8 +272,7 @@ const BASE_CSS = `
   .pcs-featured-portrait {
     height: 2.8em;
     width: 2.8em;
-    object-fit: cover;
-    object-position: center top;
+    overflow: hidden;
     background: rgba(0,0,0,0.15);
     border-radius: 50%;
     border: 2px solid currentColor;
@@ -360,13 +368,15 @@ function renderField(f, view, cfg) {
   const fs = `style="${fieldStyle(f)}"`;
   switch (f.key) {
     case "portrait": {
-      const useToken = characterStyle(view.id).portrait === "token";
+      const style = characterStyle(view.id);
+      const useToken = style.portrait === "token";
       const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
       if (!src) return "";
       const size = num(cfg.portraitSize, 120);
       const radius = cfg.portraitShape === "circle" ? "50%"
         : cfg.portraitShape === "square" ? "0" : "8px";
-      return `<img class="pcs-portrait" src="${esc(src)}" style="height:${size}px;border-radius:${radius}">`;
+      return `<div class="pcs-portrait-frame" style="height:${size}px;width:${size}px;border-radius:${radius}">` +
+        `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`;
     }
     case "name":
       return `<div class="pcs-field pcs-name" ${fs}>${esc(view.name)}</div>`;
@@ -477,6 +487,23 @@ function rollFlairType(message) {
 // Per-character identity (accent color / portrait source), shared across overlays.
 function characterStyle(actorId) {
   return (game.settings.get(MODULE_ID, "characterStyles") ?? {})[actorId] ?? {};
+}
+
+// Per-character portrait crop: focal point (x/y as %) + zoom (>= 1 tightens the
+// crop). Defaults reproduce the historical "center top" framing at no zoom.
+function portraitCrop(style) {
+  const c = style?.crop ?? {};
+  return {
+    x: Math.clamp(num(c.x, 50), 0, 100),
+    y: Math.clamp(num(c.y, 0), 0, 100),
+    zoom: Math.clamp(num(c.zoom, 1), 1, 5)
+  };
+}
+
+// Inline style for a portrait <img>: anchor the focal point and zoom around it.
+function portraitImgStyle(style) {
+  const c = portraitCrop(style);
+  return `object-position:${c.x}% ${c.y}%;transform:scale(${c.zoom});transform-origin:${c.x}% ${c.y}%;`;
 }
 
 function buildFieldParts(view, cfg) {
@@ -675,7 +702,9 @@ function buildIntroHTML(view, cfg) {
   const style = characterStyle(view.id);
   const useToken = style.portrait === "token";
   const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
-  const portrait = src ? `<img class="pcs-featured-portrait" src="${esc(src)}">` : "";
+  const portrait = src
+    ? `<span class="pcs-featured-portrait"><img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></span>`
+    : "";
   const label = esc(style.intro || cfg.featuredText || "Featured Character");
   return `<div class="pcs-featured">${portrait}` +
     `<div class="pcs-featured-label">${label}</div>` +
