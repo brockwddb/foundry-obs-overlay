@@ -113,19 +113,15 @@ const BASE_CSS = `
   }
   .pcs-plate .pcs-field { text-align: center; }
   .pcs-plate .pcs-hpbar { min-width: 90px; }
-  /* Square frame that carries the border/shape and clips the (optionally
-     zoomed) portrait. The inner <img> handles the per-character crop. */
+  /* Square frame (explicit px size set inline) that carries the border/shape
+     and clips the (optionally zoomed) portrait. border-radius rounds the border;
+     clip-path (set inline per shape) clips the transformed <img> inside, since
+     border-radius + overflow:hidden alone won't clip a transformed child. */
   .pcs-portrait-frame {
-    aspect-ratio: 1 / 1;
     overflow: hidden;
     background: rgba(0,0,0,0.15);
-    border: 2px solid rgba(255,255,255,0.55);
     box-shadow: 0 2px 8px rgba(0,0,0,0.45);
     flex: 0 0 auto;
-    /* Promote to its own layer so the rounded clip applies to the (transformed,
-       zoomed) image inside — Chromium otherwise ignores border-radius clipping
-       on transformed children, which makes every portrait render square. */
-    transform: translateZ(0);
   }
   .pcs-portrait {
     width: 100%;
@@ -273,13 +269,11 @@ const BASE_CSS = `
     gap: 6px;
     text-align: center;
   }
-  /* Animated wrapper only; the inner .pcs-portrait-frame does the round clip so
-     the entrance transform doesn't fight the border-radius mask. */
+  /* The featured portrait is a .pcs-portrait-frame; this just adds the entrance
+     animation. clip-path coexists with the animation transform. */
   .pcs-featured-portrait {
-    display: inline-block;
     opacity: 0.95;
     animation: pcs-featured-portrait 0.7s ease-out;
-    flex: 0 0 auto;
   }
   .pcs-featured-label {
     font-size: 0.72em;
@@ -375,9 +369,7 @@ function renderField(f, view, cfg) {
       const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
       if (!src) return "";
       const size = num(cfg.portraitSize, 120);
-      const radius = cfg.portraitShape === "circle" ? "50%"
-        : cfg.portraitShape === "square" ? "0" : "8px";
-      return `<div class="pcs-portrait-frame" style="height:${size}px;width:${size}px;border-radius:${radius};${portraitBorderCss(cfg)}">` +
+      return `<div class="pcs-portrait-frame" style="height:${size}px;width:${size}px;${portraitShapeCss(cfg.portraitShape)}${portraitBorderCss(cfg)}">` +
         `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`;
     }
     case "name":
@@ -513,6 +505,14 @@ function portraitBorderCss(cfg) {
   if (cfg.portraitBorderEnabled === false) return "border:none;";
   const w = num(cfg.portraitBorderWidth, 2);
   return `border:${w}px solid ${esc(cfg.portraitBorderColor || "#ffffff")};`;
+}
+
+// border-radius (rounds the frame/border) and a matching clip-path (clips the
+// zoomed image, which border-radius alone can't do for a transformed child).
+function portraitShapeCss(shape) {
+  if (shape === "circle") return "border-radius:50%;clip-path:circle(50%);";
+  if (shape === "square") return "border-radius:0;";
+  return "border-radius:8px;clip-path:inset(0 round 8px);";
 }
 
 function buildFieldParts(view, cfg) {
@@ -713,10 +713,8 @@ function buildIntroHTML(view, cfg) {
   const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
   const pSize = num(cfg.introPortraitSize, 48);
   const portrait = (src && pSize > 0)
-    ? `<span class="pcs-featured-portrait" style="height:${pSize}px;width:${pSize}px">` +
-        `<span class="pcs-portrait-frame" style="height:100%;width:100%;border-radius:50%;${portraitBorderCss(cfg)}">` +
-          `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}">` +
-        `</span></span>`
+    ? `<div class="pcs-portrait-frame pcs-featured-portrait" style="height:${pSize}px;width:${pSize}px;${portraitShapeCss("circle")}${portraitBorderCss(cfg)}">` +
+        `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`
     : "";
   const label = esc(style.intro || cfg.featuredText || "Featured Character");
   return `<div class="pcs-featured">${portrait}` +
