@@ -174,6 +174,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.borderWidth = Number(data.borderWidth) || 0;
     cfg.portraitSize = Number(data.portraitSize) || 90;
     cfg.portraitShape = data.portraitShape || "rounded";
+    cfg.portraitBorderEnabled = !!data.portraitBorderEnabled;
+    cfg.portraitBorderColor = data.portraitBorderColor || "#ffffff";
+    cfg.portraitBorderWidth = Math.max(0, Number(data.portraitBorderWidth) || 0);
     cfg.fieldGap = Number(data.fieldGap) || 0;
     cfg.paddingX = Number(data.paddingX) || 0;
     cfg.paddingY = Number(data.paddingY) || 0;
@@ -204,6 +207,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.featuredIntro = !!data.featuredIntro;
     cfg.featuredText = String(data.featuredText ?? "").trim() || "Featured Character";
     cfg.introDuration = Math.clamp(Number(data.introDuration ?? 1.8), 0.3, 10);
+    cfg.introPortraitSize = Math.max(0, Number(data.introPortraitSize) || 48);
+    cfg.introNameSize = Math.max(6, Number(data.introNameSize) || 28);
     cfg.customMessages = Object.values(data.message ?? {})
       .map(m => ({
         text: String(m?.text ?? "").trim(),

@@ -369,6 +369,8 @@
   flex: 0 0 auto;
   background: rgba(0, 0, 0, 0.15);
   display: inline-block;
+  /* Promote to its own layer so the rounded clip applies to the zoomed image. */
+  transform: translateZ(0);
 }
 
 .pcs-config .pcs-char-thumb-img {

@@ -122,6 +122,10 @@ const BASE_CSS = `
     border: 2px solid rgba(255,255,255,0.55);
     box-shadow: 0 2px 8px rgba(0,0,0,0.45);
     flex: 0 0 auto;
+    /* Promote to its own layer so the rounded clip applies to the (transformed,
+       zoomed) image inside — Chromium otherwise ignores border-radius clipping
+       on transformed children, which makes every portrait render square. */
+    transform: translateZ(0);
   }
   .pcs-portrait {
     width: 100%;
@@ -269,15 +273,13 @@ const BASE_CSS = `
     gap: 6px;
     text-align: center;
   }
+  /* Animated wrapper only; the inner .pcs-portrait-frame does the round clip so
+     the entrance transform doesn't fight the border-radius mask. */
   .pcs-featured-portrait {
-    height: 2.8em;
-    width: 2.8em;
-    overflow: hidden;
-    background: rgba(0,0,0,0.15);
-    border-radius: 50%;
-    border: 2px solid currentColor;
+    display: inline-block;
     opacity: 0.95;
     animation: pcs-featured-portrait 0.7s ease-out;
+    flex: 0 0 auto;
   }
   .pcs-featured-label {
     font-size: 0.72em;
@@ -375,7 +377,7 @@ function renderField(f, view, cfg) {
       const size = num(cfg.portraitSize, 120);
       const radius = cfg.portraitShape === "circle" ? "50%"
         : cfg.portraitShape === "square" ? "0" : "8px";
-      return `<div class="pcs-portrait-frame" style="height:${size}px;width:${size}px;border-radius:${radius}">` +
+      return `<div class="pcs-portrait-frame" style="height:${size}px;width:${size}px;border-radius:${radius};${portraitBorderCss(cfg)}">` +
         `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`;
     }
     case "name":
@@ -504,6 +506,13 @@ function portraitCrop(style) {
 function portraitImgStyle(style) {
   const c = portraitCrop(style);
   return `object-position:${c.x}% ${c.y}%;transform:scale(${c.zoom});transform-origin:${c.x}% ${c.y}%;`;
+}
+
+// Border for the portrait frame, driven by the per-overlay config.
+function portraitBorderCss(cfg) {
+  if (cfg.portraitBorderEnabled === false) return "border:none;";
+  const w = num(cfg.portraitBorderWidth, 2);
+  return `border:${w}px solid ${esc(cfg.portraitBorderColor || "#ffffff")};`;
 }
 
 function buildFieldParts(view, cfg) {
@@ -702,13 +711,17 @@ function buildIntroHTML(view, cfg) {
   const style = characterStyle(view.id);
   const useToken = style.portrait === "token";
   const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
-  const portrait = src
-    ? `<span class="pcs-featured-portrait"><img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></span>`
+  const pSize = num(cfg.introPortraitSize, 48);
+  const portrait = (src && pSize > 0)
+    ? `<span class="pcs-featured-portrait" style="height:${pSize}px;width:${pSize}px">` +
+        `<span class="pcs-portrait-frame" style="height:100%;width:100%;border-radius:50%;${portraitBorderCss(cfg)}">` +
+          `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}">` +
+        `</span></span>`
     : "";
   const label = esc(style.intro || cfg.featuredText || "Featured Character");
   return `<div class="pcs-featured">${portrait}` +
     `<div class="pcs-featured-label">${label}</div>` +
-    `<div class="pcs-featured-name pcs-name">${esc(view.name)}</div></div>`;
+    `<div class="pcs-featured-name pcs-name" style="font-size:${num(cfg.introNameSize, 28)}px">${esc(view.name)}</div></div>`;
 }
 
 function buildMessageHTML(message, cfg) {
