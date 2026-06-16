@@ -116,6 +116,8 @@ const BASE_CSS = `
   .pcs-portrait {
     aspect-ratio: 1 / 1;
     object-fit: cover;
+    object-position: center top;
+    background: rgba(0,0,0,0.15);
     border: 2px solid rgba(255,255,255,0.55);
     box-shadow: 0 2px 8px rgba(0,0,0,0.45);
   }
@@ -259,9 +261,11 @@ const BASE_CSS = `
     text-align: center;
   }
   .pcs-featured-portrait {
-    height: 2.6em;
-    width: 2.6em;
+    height: 2.8em;
+    width: 2.8em;
     object-fit: cover;
+    object-position: center top;
+    background: rgba(0,0,0,0.15);
     border-radius: 50%;
     border: 2px solid currentColor;
     opacity: 0.95;
@@ -564,10 +568,13 @@ const SAMPLE_VIEW = {
   currency: []
 };
 
-function previewViews(cfg, count) {
+function previewViews(cfg, count, start = 0) {
   const actors = (cfg.selectedActors ?? []).map(id => game.actors?.get(id)).filter(a => a);
-  if (actors.length) return actors.slice(0, count).map(a => getActorViewData(a));
-  return Array.from({ length: Math.min(count, 3) }, () => SAMPLE_VIEW);
+  if (!actors.length) return Array.from({ length: Math.min(count, 3) }, () => SAMPLE_VIEW);
+  const n = Math.min(count, actors.length);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(getActorViewData(actors[(start + i) % actors.length]));
+  return out;
 }
 
 // Bake a damage/heal/crit/fumble animation into a static element so it replays
@@ -612,7 +619,7 @@ const PREVIEW_CSS = `
 
 // Build a self-contained HTML document for the live preview iframe.
 // state: null | "message" | "damage" | "heal" | "crit" | "fumble".
-export function buildPreviewDocument(cfg, mode, column, state = null) {
+export function buildPreviewDocument(cfg, mode, column, state = null, start = 0) {
   const css = BASE_CSS + dynamicCss(cfg) + PREVIEW_CSS;
   const fonts = fontLinks(cfg.fontFamily);
   const deco = stateDecoration(cfg, state);
@@ -620,15 +627,16 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
   let content;
   if (mode === "carousel") {
     const cardClass = column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
-    const view = previewViews(cfg, 1)[0];
+    const view = previewViews(cfg, 1, start)[0];
     const downCls = (state !== "message" && cfg.showDownState && view.down) ? " pcs-down" : "";
-    const inner = state === "message"
-      ? buildMessageHTML(sampleMessage(cfg), cfg)
-      : buildCardHTML(view, cfg) + deco.overlay;
+    let inner;
+    if (state === "message") inner = buildMessageHTML(sampleMessage(cfg), cfg);
+    else if (state === "intro") inner = buildIntroHTML(view, cfg);
+    else inner = buildCardHTML(view, cfg) + deco.overlay;
     content = `<div id="pcs-card" class="${cardClass} ${deco.cls}${downCls}" style="${deco.varStyle}">${inner}</div>`;
   } else {
     const limit = mode === "vertical" ? 2 : 3; // column is taller, show fewer
-    const plates = previewViews(cfg, limit).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
+    const plates = previewViews(cfg, limit, start).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
     const dir = mode === "vertical" ? "pcs-prev-col" : "pcs-prev-row";
     content = `<div class="${dir}">${plates}</div>`;
   }
@@ -664,10 +672,11 @@ export function buildPreviewDocument(cfg, mode, column, state = null) {
 
 // Animated "Featured Character" lead-in shown before each banner card.
 function buildIntroHTML(view, cfg) {
-  const useToken = characterStyle(view.id).portrait === "token";
+  const style = characterStyle(view.id);
+  const useToken = style.portrait === "token";
   const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
   const portrait = src ? `<img class="pcs-featured-portrait" src="${esc(src)}">` : "";
-  const label = esc(cfg.featuredText || "Featured Character");
+  const label = esc(style.intro || cfg.featuredText || "Featured Character");
   return `<div class="pcs-featured">${portrait}` +
     `<div class="pcs-featured-label">${label}</div>` +
     `<div class="pcs-featured-name pcs-name">${esc(view.name)}</div></div>`;

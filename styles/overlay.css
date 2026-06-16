@@ -108,11 +108,16 @@
   gap: 4px;
 }
 
-.pcs-config .pcs-preview-actions .pcs-prev-btn {
+.pcs-config .pcs-preview-actions .pcs-prev-btn,
+.pcs-config .pcs-preview-actions .pcs-prev-cycle {
   width: auto;
   flex: 0 0 auto;
   font-size: 0.82em;
   padding: 2px 8px;
+}
+
+.pcs-config .pcs-preview-actions .pcs-prev-cycle {
+  font-weight: 600;
 }
 
 /* --- Collapsible setting groups -------------------------------------------- */
@@ -349,19 +354,27 @@
 .pcs-config .pcs-char-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 3px 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+  border-bottom: 1px solid var(--color-border, rgba(128, 128, 128, 0.15));
 }
 
 .pcs-config .pcs-char-row img {
   object-fit: cover;
+  object-position: center top;
   border-radius: 4px;
   flex: 0 0 auto;
 }
 
 .pcs-config .pcs-char-name {
-  flex: 1 1 auto;
+  flex: 0 0 140px;
   font-weight: 600;
+}
+
+.pcs-config .pcs-char-intro {
+  flex: 1 1 140px;
+  min-width: 120px;
 }
 
 .pcs-config .pcs-char-opt {

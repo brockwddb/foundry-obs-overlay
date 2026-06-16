@@ -114,6 +114,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         name: a.name,
         img: a.img,
         selected: selected.has(a.id),
+        intro: styles[a.id]?.intro || "",
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
         portraitToken: styles[a.id]?.portrait === "token"
@@ -230,6 +231,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       const style = {};
       if (v?.accentOn) style.accent = v.accent || "#b08d3c";
       if (v?.useToken) style.portrait = "token";
+      const intro = String(v?.intro ?? "").trim();
+      if (intro) style.intro = intro;
       if (Object.keys(style).length) characterStyles[id] = style;
     }
     await game.settings.set(MODULE_ID, "characterStyles", characterStyles);
@@ -296,6 +299,12 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       for (const btn of pane.querySelectorAll(".pcs-prev-btn")) {
         btn.addEventListener("click", () => this.#updatePreview(key, btn.dataset.prev));
       }
+      const cycle = pane.querySelector(".pcs-prev-cycle");
+      cycle?.addEventListener("click", () => {
+        this._previewIndex ??= {};
+        this._previewIndex[key] = (this._previewIndex[key] || 0) + 1;
+        this.#updatePreview(key);
+      });
     }
   }
 
@@ -317,7 +326,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     try {
       const cfg = this.#paneConfig(key);
       const { mode, column } = OVERLAYS[key];
-      frame.srcdoc = buildPreviewDocument(cfg, mode, !!column, state);
+      const start = this._previewIndex?.[key] || 0;
+      frame.srcdoc = buildPreviewDocument(cfg, mode, !!column, state, start);
     } catch (err) {
       console.warn(`${MODULE_ID} | preview render failed`, err);
     }
