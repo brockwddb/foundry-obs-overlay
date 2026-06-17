@@ -224,10 +224,18 @@ export const BASE_CSS = `
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
+    /* Always a clean sans-serif so digits and "!" read clearly, regardless of
+       the card's display font (e.g. a serif "!" looks like a "1"). */
+    font-family: "Segoe UI", system-ui, Arial, sans-serif;
     font-size: 2.4em;
     font-weight: 900;
+    white-space: nowrap;
     pointer-events: none;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.6), 0 0 4px rgba(255,255,255,0.5);
+    /* Crisp dark outline + soft drop shadow so it pops over any card color. */
+    text-shadow:
+      -1.5px -1.5px 0 rgba(0,0,0,0.85), 1.5px -1.5px 0 rgba(0,0,0,0.85),
+      -1.5px 1.5px 0 rgba(0,0,0,0.85), 1.5px 1.5px 0 rgba(0,0,0,0.85),
+      0 2px 6px rgba(0,0,0,0.6);
     animation: pcs-hit-float 1.4s ease-out forwards;
     z-index: 5;
   }
@@ -257,7 +265,7 @@ export const BASE_CSS = `
   @keyframes pcs-pop { 0% { transform: scale(1); } 30% { transform: scale(1.06); } 100% { transform: scale(1); } }
   .pcs-flair-crit { animation: pcs-flash 1.2s ease-out, pcs-pop 0.5s ease-out; }
   .pcs-flair-fumble { animation: pcs-flash 1.2s ease-out, pcs-shake 0.5s ease-in-out; }
-  .pcs-flair-text { font-size: 2.9em; font-weight: 900; letter-spacing: 1px; }
+  .pcs-flair-text { font-size: 2.9em; font-weight: 900; letter-spacing: 3px; }
 
   /* Featured-character intro */
   .pcs-featured {
