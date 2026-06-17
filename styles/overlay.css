@@ -16,10 +16,6 @@
   padding-right: 6px;
 }
 
-#pcstats-overlay-config .form-footer {
-  flex: 0 0 auto;
-}
-
 /* --- Tabs ------------------------------------------------------------------ */
 .pcs-config .pcs-tabs {
   display: flex;
@@ -466,6 +462,10 @@
 /* Save footer */
 #pcstats-overlay-config .form-footer {
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   padding: 8px 2px 2px;
   margin-top: 4px;
@@ -473,5 +473,7 @@
 }
 
 #pcstats-overlay-config .form-footer button {
+  flex: 0 0 auto;
+  width: auto;
   padding: 6px 16px;
 }
