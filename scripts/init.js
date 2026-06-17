@@ -19,10 +19,39 @@ Hooks.once("ready", () => {
     controllers,
     open: (key) => controllers[key]?.open(),
     close: (key) => controllers[key]?.close(),
-    test: (key) => controllers[key]?.runTest()
+    test: (key) => controllers[key]?.runTest(),
+    // Feature a character on every open banner overlay.
+    feature: (actorId) => { for (const key of OVERLAY_KEYS) controllers[key]?.feature(actorId); },
+    // Float a manual callout on every open overlay (actorId/color optional).
+    callout: (text, actorId = null, color = null) => {
+      for (const key of OVERLAY_KEYS) controllers[key]?.calloutManual(text, actorId, color);
+    }
   };
 
   console.log(`${MODULE_ID} | ready`);
+});
+
+// Token HUD button: feature the token's actor on the banner overlays on click.
+Hooks.on("renderTokenHUD", (hud, html) => {
+  const minRole = Number(game.settings.get(MODULE_ID, "accessRole") ?? CONST.USER_ROLES.GAMEMASTER);
+  if (game.user.role < minRole) return;
+  const actorId = hud.object?.actor?.id ?? hud.document?.actorId;
+  if (!actorId) return;
+
+  const root = html instanceof HTMLElement ? html : html?.[0];
+  const col = root?.querySelector?.(".col.left") ?? root?.querySelector?.(".col.right");
+  if (!col) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "control-icon pcs-hud-feature";
+  btn.title = game.i18n.localize("PCSTATS.FeatureOnOverlay");
+  btn.innerHTML = `<i class="fa-solid fa-star"></i>`;
+  btn.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    game.modules.get(MODULE_ID).api?.feature(actorId);
+  });
+  col.appendChild(btn);
 });
 
 Hooks.on("getSceneControlButtons", (controls) => {

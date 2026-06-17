@@ -5,6 +5,7 @@
   "PCSTATS.OpenParty": "Open Party Row Overlay",
   "PCSTATS.OpenVertical": "Open Party Column Overlay",
   "PCSTATS.OpenTurnOrder": "Open Turn Order Overlay",
+  "PCSTATS.FeatureOnOverlay": "Feature on PC Stats banner",
   "PCSTATS.AccessRole": "Minimum role to open overlays",
   "PCSTATS.AccessRoleHint": "Users at or above this role see the PC Stats Overlays controls and can open the popout windows.",
   "PCSTATS.RolePlayer": "Player",

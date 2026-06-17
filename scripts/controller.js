@@ -687,6 +687,36 @@ export class OverlayController {
     else this.playEvent(events[0]);
   }
 
+  // GM "feature this character now": on a banner, jump to the actor's slide and
+  // hold there before resuming the normal rotation. No-op on the other layouts.
+  feature(actorId) {
+    if (!this.isOpen || this.mode !== "carousel") return;
+    const slides = this.getSlides();
+    const idx = slides.findIndex(s => s.type === "actor" && s.actor?.id === actorId);
+    if (idx < 0) return;
+    this.stopRotation();
+    this.animating = false;
+    this.eventQueue = [];
+    this.index = idx;
+    this._renderCarousel();
+    const hold = (num(this.cfg().rotateInterval, 8) || 8) * 1000;
+    this.popup.setTimeout(() => { if (this.isOpen && !this.animating) this.startRotation(); }, hold);
+  }
+
+  // GM manual callout: float arbitrary text on an actor (defaults to the first
+  // shown character / current combatant if no actor is given).
+  calloutManual(text, actorId = null, color = null) {
+    if (!this.isOpen || !String(text ?? "").trim()) return;
+    const cfg = this.cfg();
+    let id = actorId;
+    if (!id) {
+      const a = this.mode === "initiative" ? this._combatViews(cfg)[0]?.actor : this.getActors()[0];
+      id = a?.id;
+    }
+    if (!id) return;
+    this._queueCallout(id, String(text), color || cfg.reactionColor || "#ffd700");
+  }
+
   // Re-read config and reapply everything (called after the config window saves).
   reload() {
     if (!this.isOpen) return;
