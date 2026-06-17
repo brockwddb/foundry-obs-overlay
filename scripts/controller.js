@@ -3,7 +3,7 @@ import { getActorViewData } from "./data.js";
 import {
   BASE_CSS, dynamicCss, fontLinks, esc, num, hexToRgba, characterStyle,
   buildCardHTML, buildMessageHTML, buildIntroHTML, buildFieldParts, downBadge,
-  accentBorderCss, activeCombatantActorId, lcm, rollFlairType
+  accentBorderCss, activeCombatantActorId, lcm, rollFlairType, damageRollTotal
 } from "./render.js";
 
 const DEFAULT_TRANSITION_S = 0.25;
@@ -94,9 +94,15 @@ export class OverlayController {
 
   _initHpCache() {
     this.hpCache = new Map();
+    this.stateCache = new Map();
     for (const a of this.getActors()) {
       const v = a.system?.attributes?.hp?.value;
       if (v != null) this.hpCache.set(a.id, v);
+      this.stateCache.set(a.id, {
+        insp: !!a.system?.attributes?.inspiration,
+        exh: Number(a.system?.attributes?.exhaustion ?? 0),
+        level: Number(a.system?.details?.level ?? 0)
+      });
     }
   }
 
@@ -404,12 +410,70 @@ export class OverlayController {
 
     if (hpChanged && cfg.combatAnimations && (!combatOnly || inCombat) && selected
       && oldVal != null && newVal != null && newVal !== oldVal) {
-      const event = { actorId: actor.id, delta: newVal - oldVal, oldHp: oldVal, newHp: newVal, max };
+      const event = { kind: "hp", actorId: actor.id, delta: newVal - oldVal, oldHp: oldVal, newHp: newVal, max };
       if (this.animating) this.eventQueue.push(event);
       else this.playEvent(event);
       return;
     }
 
+    // Reaction callouts (inspiration / exhaustion / level up) — not combat-gated.
+    if (cfg.reactionCallouts && selected) this._checkReactions(actor, cfg);
+
+    if (!this.animating) this.render();
+  }
+
+  // Compare cached state to fire inspiration / exhaustion / level-up callouts.
+  _checkReactions(actor, cfg) {
+    const st = this.stateCache.get(actor.id) ?? {};
+    const insp = !!actor.system?.attributes?.inspiration;
+    const exh = Number(actor.system?.attributes?.exhaustion ?? 0);
+    const level = Number(actor.system?.details?.level ?? 0);
+    const L = (k) => game.i18n.localize(k);
+
+    if (st.insp === false && insp === true) this._queueCallout(actor.id, L("PCSTATS.CalloutInspiration"), cfg.reactionColor);
+    if (st.exh != null && exh !== st.exh) {
+      this._queueCallout(actor.id, exh > 0 ? `${L("PCSTATS.FieldExhaustion")} ${exh}` : L("PCSTATS.CalloutExhaustionClear"), cfg.reactionColor);
+    }
+    if (st.level != null && level > st.level) this._queueCallout(actor.id, L("PCSTATS.CalloutLevelUp"), cfg.reactionColor);
+
+    this.stateCache.set(actor.id, { insp, exh, level });
+  }
+
+  _queueCallout(actorId, text, color) {
+    const event = { kind: "callout", actorId, text, color: color || "#ffd700" };
+    if (this.animating) this.eventQueue.push(event);
+    else this.playEvent(event);
+  }
+
+  _queueFlair(actorId, flair) {
+    const event = { kind: "flair", actorId, flair };
+    if (this.animating) this.eventQueue.push(event);
+    else this.playEvent(event);
+  }
+
+  // A condition/status effect was applied → callout with its name.
+  onEffectCreate(effect) {
+    if (!this.isOpen) return;
+    const cfg = this.cfg();
+    const actor = effect?.parent;
+    if (cfg.reactionCallouts && actor?.documentName === "Actor"
+      && this._selectedIds().includes(actor.id) && effect.statuses?.size > 0) {
+      this._queueCallout(actor.id, effect.name || game.i18n.localize("PCSTATS.CalloutCondition"), cfg.reactionColor);
+      return;
+    }
+    if (!this.animating) this.render();
+  }
+
+  // Concentration effect removed → "Concentration broken" callout.
+  onEffectDelete(effect) {
+    if (!this.isOpen) return;
+    const cfg = this.cfg();
+    const actor = effect?.parent;
+    if (cfg.reactionCallouts && actor?.documentName === "Actor"
+      && this._selectedIds().includes(actor.id) && effect.statuses?.has?.("concentrating")) {
+      this._queueCallout(actor.id, game.i18n.localize("PCSTATS.CalloutConcentration"), cfg.reactionColor);
+      return;
+    }
     if (!this.animating) this.render();
   }
 
@@ -434,6 +498,7 @@ export class OverlayController {
     card.innerHTML = buildCardHTML(getActorViewData(actor), cfg);
     this._applyScale(this._scaleEl(), cfg);
     if (event.kind === "flair") this._flairTarget(card, event.flair, cfg);
+    else if (event.kind === "callout") this._calloutTarget(card, event, cfg);
     else this._flashTarget(card, event, cfg);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
@@ -451,10 +516,27 @@ export class OverlayController {
 
     const cfg = this.cfg();
     if (event.kind === "flair") this._flairTarget(plate, event.flair, cfg);
+    else if (event.kind === "callout") this._calloutTarget(plate, event, cfg);
     else this._flashTarget(plate, event, cfg);
 
     const dur = num(cfg.combatAnimDuration, 3) * 1000;
     this.popup.setTimeout(() => this.finishEvent(), dur);
+  }
+
+  // Generic floating callout (condition, inspiration, level up, damage dealt).
+  _calloutTarget(el, event, cfg) {
+    const color = event.color || "#ffd700";
+    el.style.animation = "";
+    el.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble", "pcs-flash-callout");
+    el.style.setProperty("--pcs-flash", hexToRgba(color, 0.9));
+    void el.offsetWidth;
+    el.classList.add("pcs-flash-callout");
+
+    const text = this.popup.document.createElement("div");
+    text.className = "pcs-hit pcs-callout-text";
+    text.style.color = color;
+    text.textContent = event.text;
+    el.appendChild(text);
   }
 
   // Crit (nat 20) / fumble (nat 1) burst on one element.
@@ -528,7 +610,7 @@ export class OverlayController {
       // character, then wait the normal display time before advancing — don't
       // snap to another card or restart the loop from the beginning.
       const card = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
-      if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble");
+      if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble", "pcs-flash-callout");
       const slides = this.getSlides();
       const idx = slides.findIndex(s => s.type === "actor" && s.actor?.id === this._lastEventActorId);
       if (idx >= 0) this.index = idx;
@@ -603,18 +685,22 @@ export class OverlayController {
     this.render();
   }
 
-  // A chat message landed — check it for a nat 20 / nat 1 by a selected actor.
+  // A chat message landed — check it for a nat 20 / nat 1 (flair) or a damage
+  // roll (callout) by a selected actor.
   onCreateChatMessage(message) {
     if (!this.isOpen) return;
     const cfg = this.cfg();
-    if (!cfg.diceFlair) return;
     const actorId = message.speaker?.actor;
     if (!actorId || !this._selectedIds().includes(actorId)) return;
-    const flair = rollFlairType(message);
-    if (!flair) return;
-    const event = { kind: "flair", actorId, flair };
-    if (this.animating) this.eventQueue.push(event);
-    else this.playEvent(event);
+
+    if (cfg.diceFlair) {
+      const flair = rollFlairType(message);
+      if (flair) { this._queueFlair(actorId, flair); return; }
+    }
+    if (cfg.damageCallouts) {
+      const dmg = damageRollTotal(message);
+      if (dmg != null) this._queueCallout(actorId, `${dmg} ${game.i18n.localize("PCSTATS.DamageUnit")}`, cfg.damageColor || "#a01e12");
+    }
   }
 
   registerHooks() {
@@ -628,9 +714,14 @@ export class OverlayController {
       this._hookIds.push([hook, Hooks.on(hook, onCombat)]);
     }
 
+    this._hookIds.push(["createActiveEffect",
+      Hooks.on("createActiveEffect", (effect) => this.onEffectCreate(effect))]);
+    this._hookIds.push(["deleteActiveEffect",
+      Hooks.on("deleteActiveEffect", (effect) => this.onEffectDelete(effect))]);
+
     const refresh = () => { if (this.isOpen && !this.animating) this.render(); };
     for (const hook of ["updateToken", "deleteActor", "createToken", "deleteToken",
-      "userConnected", "createActiveEffect", "deleteActiveEffect", "updateActiveEffect"]) {
+      "userConnected", "updateActiveEffect"]) {
       this._hookIds.push([hook, Hooks.on(hook, refresh)]);
     }
   }

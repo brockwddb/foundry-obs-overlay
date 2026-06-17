@@ -257,6 +257,20 @@
           <input type="color" name="{{this.key}}.fumbleColor" value="{{this.cfg.fumbleColor}}">
         </div>
         <div class="form-group">
+          <label>{{localize "PCSTATS.DamageCallouts"}}</label>
+          <input type="checkbox" name="{{this.key}}.damageCallouts" {{checked this.cfg.damageCallouts}}>
+          <span class="field-help inline">{{localize "PCSTATS.HelpDamageCallouts"}}</span>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.ReactionCallouts"}}</label>
+          <input type="checkbox" name="{{this.key}}.reactionCallouts" {{checked this.cfg.reactionCallouts}}>
+          <span class="field-help inline">{{localize "PCSTATS.HelpReactionCallouts"}}</span>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.ReactionColor"}}</label>
+          <input type="color" name="{{this.key}}.reactionColor" value="{{this.cfg.reactionColor}}">
+        </div>
+        <div class="form-group">
           <label>{{localize "PCSTATS.ShowDownState"}}</label>
           <input type="checkbox" name="{{this.key}}.showDownState" {{checked this.cfg.showDownState}}>
         </div>

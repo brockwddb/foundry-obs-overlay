@@ -272,6 +272,9 @@ export const BASE_CSS = `
   .pcs-flair-crit { animation: pcs-flash 1.2s ease-out, pcs-pop 0.5s ease-out; }
   .pcs-flair-fumble { animation: pcs-flash 1.2s ease-out, pcs-shake 0.5s ease-in-out; }
   .pcs-flair-text { font-size: 2.9em; font-weight: 900; letter-spacing: 3px; }
+  /* Generic reaction callout (condition, inspiration, level up, damage dealt) */
+  .pcs-flash-callout { animation: pcs-flash 0.9s ease-out, pcs-pop 0.5s ease-out; }
+  .pcs-callout-text { font-size: 1.9em; font-weight: 900; letter-spacing: 1px; }
 
   /* Featured-character intro */
   .pcs-featured {
@@ -531,6 +534,18 @@ export function rollFlairType(message) {
     }
   }
   return null;
+}
+
+// Total of a dnd5e damage roll message, or null if it isn't a damage roll.
+export function damageRollTotal(message) {
+  const isDamage = message.flags?.dnd5e?.roll?.type === "damage"
+    || (message.rolls ?? []).some(r => /damage/i.test(r?.constructor?.name ?? ""));
+  if (!isDamage) return null;
+  let total = 0, any = false;
+  for (const r of message.rolls ?? []) {
+    if (typeof r?.total === "number") { total += r.total; any = true; }
+  }
+  return any ? Math.round(total) : null;
 }
 
 // Per-character identity (accent color / portrait source), shared across overlays.

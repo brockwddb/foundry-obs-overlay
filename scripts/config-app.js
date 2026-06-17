@@ -211,6 +211,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.diceFlair = !!data.diceFlair;
     cfg.critColor = data.critColor || "#ffd700";
     cfg.fumbleColor = data.fumbleColor || "#7a2230";
+    cfg.damageCallouts = !!data.damageCallouts;
+    cfg.reactionCallouts = !!data.reactionCallouts;
+    cfg.reactionColor = data.reactionColor || "#ffd700";
 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;
