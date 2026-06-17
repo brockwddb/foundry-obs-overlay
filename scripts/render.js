@@ -439,10 +439,14 @@ function renderField(f, view, cfg) {
       return view.classLabel ? `<div class="pcs-field" ${fs}>${esc(view.classLabel)}</div>` : "";
     case "race":
       return view.race ? `<div class="pcs-field" ${fs}>${esc(view.race)}</div>` : "";
-    case "player": {
+    case "playerName": {
+      const override = String(characterStyle(view.id).playerName ?? "").trim();
+      const name = override || view.playerName;
+      return name ? `<div class="pcs-field pcs-player" ${fs}>${esc(name)}</div>` : "";
+    }
+    case "pronouns": {
       const pronouns = String(characterStyle(view.id).pronouns ?? "").trim();
-      const txt = [view.playerName, pronouns ? `(${pronouns})` : ""].filter(Boolean).join(" ");
-      return txt ? `<div class="pcs-field pcs-player" ${fs}>${esc(txt)}</div>` : "";
+      return pronouns ? `<div class="pcs-field pcs-pronouns" ${fs}>${esc(pronouns)}</div>` : "";
     }
     case "resources": {
       if (!view.resources.length) return "";

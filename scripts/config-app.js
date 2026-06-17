@@ -30,7 +30,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       icon: "fa-solid fa-sliders",
       resizable: true
     },
-    position: { width: 680, height: "auto" },
+    position: { width: 1080, height: "auto" },
     form: {
       handler: OverlayConfigApp.#onSubmit,
       closeOnSubmit: true
@@ -127,6 +127,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         intro: styles[a.id]?.intro || "",
         bio: styles[a.id]?.bio || "",
         pronouns: styles[a.id]?.pronouns || "",
+        playerOverride: styles[a.id]?.playerName || "",
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
         portraitToken: styles[a.id]?.portrait === "token",
@@ -284,6 +285,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (bio) style.bio = bio;
       const pronouns = String(v?.pronouns ?? "").trim();
       if (pronouns) style.pronouns = pronouns;
+      const playerName = String(v?.playerName ?? "").trim();
+      if (playerName) style.playerName = playerName;
       // Portrait crop: only persist when it differs from the default framing.
       const cropX = Math.clamp(Number(v?.cropX ?? 50), 0, 100);
       const cropY = Math.clamp(Number(v?.cropY ?? 0), 0, 100);

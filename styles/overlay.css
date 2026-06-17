@@ -457,6 +457,11 @@
   min-width: 120px;
 }
 
+.pcs-config .pcs-char-player {
+  flex: 0 1 130px;
+  min-width: 100px;
+}
+
 .pcs-config .pcs-char-pronouns {
   flex: 0 1 110px;
   min-width: 90px;

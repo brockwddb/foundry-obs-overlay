@@ -505,6 +505,7 @@
             <span class="pcs-char-thumb"><img class="pcs-char-thumb-img" src="{{this.img}}" alt=""></span>
             <span class="pcs-char-name">{{this.name}}</span>
             <input type="text" class="pcs-char-intro" name="characters.{{this.id}}.intro" value="{{this.intro}}" placeholder="{{localize "PCSTATS.IntroPlaceholder"}}" title="{{localize "PCSTATS.IntroText"}}">
+            <input type="text" class="pcs-char-player" name="characters.{{this.id}}.playerName" value="{{this.playerOverride}}" placeholder="{{localize "PCSTATS.PlayerOverridePlaceholder"}}" title="{{localize "PCSTATS.PlayerOverrideText"}}">
             <input type="text" class="pcs-char-pronouns" name="characters.{{this.id}}.pronouns" value="{{this.pronouns}}" placeholder="{{localize "PCSTATS.PronounsPlaceholder"}}" title="{{localize "PCSTATS.PronounsText"}}">
             <label class="pcs-char-opt">
               <input type="checkbox" name="characters.{{this.id}}.accentOn" {{checked this.accentOn}}>
