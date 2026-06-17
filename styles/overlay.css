@@ -418,6 +418,14 @@
   flex: 0 0 auto;
 }
 
+.pcs-config .pcs-char-bio {
+  flex: 1 1 100%;
+  min-width: 100%;
+  min-height: 2.5em;
+  resize: vertical;
+  font-family: inherit;
+}
+
 /* --- Tools (copy / export-import) ------------------------------------------ */
 .pcs-config .pcs-group .form-group select.pcs-copy-source,
 .pcs-config .pcs-group .form-group select.pcs-copy-target {

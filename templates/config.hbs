@@ -280,6 +280,11 @@
             <label>{{localize "PCSTATS.IntroNameSize"}}</label>
             <input type="number" name="{{this.key}}.introNameSize" value="{{this.cfg.introNameSize}}" min="6" max="200" step="1">
           </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroBioSize"}}</label>
+            <input type="number" name="{{this.key}}.introBioSize" value="{{this.cfg.introBioSize}}" min="6" max="120" step="1">
+            <span class="field-help inline">{{localize "PCSTATS.HelpIntroBio"}}</span>
+          </div>
         </details>
 
         <details class="pcs-group">
@@ -454,6 +459,7 @@
               <span class="pcs-crop-field">Y<input type="number" name="characters.{{this.id}}.cropY" value="{{this.cropY}}" min="0" max="100" step="1"></span>
               <span class="pcs-crop-field">{{localize "PCSTATS.Zoom"}}<input type="number" name="characters.{{this.id}}.cropZoom" value="{{this.cropZoom}}" min="1" max="5" step="0.1"></span>
             </span>
+            <textarea class="pcs-char-bio" name="characters.{{this.id}}.bio" rows="2" placeholder="{{localize "PCSTATS.BioPlaceholder"}}" title="{{localize "PCSTATS.BioText"}}">{{this.bio}}</textarea>
           </div>
         {{else}}
           <p class="field-help">{{localize "PCSTATS.NoCharacterActors"}}</p>

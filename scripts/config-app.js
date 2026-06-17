@@ -115,6 +115,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         img: a.img,
         selected: selected.has(a.id),
         intro: styles[a.id]?.intro || "",
+        bio: styles[a.id]?.bio || "",
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
         portraitToken: styles[a.id]?.portrait === "token",
@@ -209,6 +210,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.introDuration = Math.clamp(Number(data.introDuration ?? 1.8), 0.3, 10);
     cfg.introPortraitSize = Math.max(0, Number(data.introPortraitSize) || 48);
     cfg.introNameSize = Math.max(6, Number(data.introNameSize) || 28);
+    cfg.introBioSize = Math.max(6, Number(data.introBioSize) || 16);
     cfg.customMessages = Object.values(data.message ?? {})
       .map(m => ({
         text: String(m?.text ?? "").trim(),
@@ -241,6 +243,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (v?.useToken) style.portrait = "token";
       const intro = String(v?.intro ?? "").trim();
       if (intro) style.intro = intro;
+      const bio = String(v?.bio ?? "").trim();
+      if (bio) style.bio = bio;
       // Portrait crop: only persist when it differs from the default framing.
       const cropX = Math.clamp(Number(v?.cropX ?? 50), 0, 100);
       const cropY = Math.clamp(Number(v?.cropY ?? 0), 0, 100);

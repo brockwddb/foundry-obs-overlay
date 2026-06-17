@@ -288,6 +288,16 @@ const BASE_CSS = `
     line-height: 1.1;
     animation: pcs-featured-name 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   }
+  .pcs-featured-bio {
+    font-style: italic;
+    opacity: 0.9;
+    max-width: 32em;
+    line-height: 1.35;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    animation: pcs-featured-name 0.9s ease-out both;
+    animation-delay: 0.12s;
+  }
   @keyframes pcs-featured-portrait { 0% { opacity: 0; transform: scale(0.5); } 100% { opacity: 0.95; transform: none; } }
   @keyframes pcs-featured-label { 0% { opacity: 0; letter-spacing: 14px; } 100% { opacity: 0.85; letter-spacing: 5px; } }
   @keyframes pcs-featured-name { 0% { opacity: 0; transform: translateY(10px) scale(0.92); } 100% { opacity: 1; transform: none; } }
@@ -397,6 +407,8 @@ function renderField(f, view, cfg) {
     }
     case "classLevel":
       return view.classLabel ? `<div class="pcs-field" ${fs}>${esc(view.classLabel)}</div>` : "";
+    case "race":
+      return view.race ? `<div class="pcs-field" ${fs}>${esc(view.race)}</div>` : "";
     case "conditions": {
       if (!view.conditions.length) return "";
       const items = view.conditions.map(c =>
@@ -590,6 +602,7 @@ const SAMPLE_VIEW = {
   ac: 16,
   level: 5,
   classLabel: "Fighter 5",
+  race: "Half-Elf",
   abilities: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].map((label, i) => ({
     key: label.toLowerCase(), label, value: 14 + i % 3, mod: 2, modStr: "+2"
   })),
@@ -717,9 +730,14 @@ function buildIntroHTML(view, cfg) {
         `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`
     : "";
   const label = esc(style.intro || cfg.featuredText || "Featured Character");
+  const bioText = String(style.bio ?? "").trim();
+  const bio = bioText
+    ? `<div class="pcs-featured-bio" style="font-size:${num(cfg.introBioSize, 16)}px">${esc(bioText)}</div>`
+    : "";
   return `<div class="pcs-featured">${portrait}` +
     `<div class="pcs-featured-label">${label}</div>` +
-    `<div class="pcs-featured-name pcs-name" style="font-size:${num(cfg.introNameSize, 28)}px">${esc(view.name)}</div></div>`;
+    `<div class="pcs-featured-name pcs-name" style="font-size:${num(cfg.introNameSize, 28)}px">${esc(view.name)}</div>` +
+    `${bio}</div>`;
 }
 
 function buildMessageHTML(message, cfg) {

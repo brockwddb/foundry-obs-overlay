@@ -12,6 +12,18 @@ function getClassLabel(actor) {
   return level ? `Level ${level}` : "";
 }
 
+// Race / species. dnd5e stores it as an embedded Item (type "race", or
+// "species" in newer data); some older actors kept a plain string on details.
+function getRace(actor) {
+  const item = actor.itemTypes?.race?.[0] ?? actor.itemTypes?.species?.[0];
+  if (item?.name) return item.name;
+  const d = actor.system?.details ?? {};
+  if (typeof d.race === "string" && d.race.trim()) return d.race.trim();
+  if (d.race?.name) return d.race.name;
+  if (typeof d.species === "string" && d.species.trim()) return d.species.trim();
+  return "";
+}
+
 function getAbilities(actor) {
   const abilities = actor.system?.abilities ?? {};
   return Object.entries(abilities).map(([key, a]) => {
@@ -94,6 +106,7 @@ export function getActorViewData(actor) {
     ac: ac.value ?? null,
     level: sys.details?.level ?? null,
     classLabel: getClassLabel(actor),
+    race: getRace(actor),
     abilities: getAbilities(actor),
     conditions: getConditions(actor),
     deathSaves: {
