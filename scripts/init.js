@@ -1,6 +1,6 @@
 import { MODULE_ID, OVERLAY_KEYS } from "./constants.js";
 import { registerSettings } from "./settings.js";
-import { OverlayController } from "./overlay.js";
+import { OverlayController } from "./controller.js";
 
 Hooks.once("init", () => {
   registerSettings();
@@ -17,12 +17,9 @@ Hooks.once("ready", () => {
   const mod = game.modules.get(MODULE_ID);
   mod.api = {
     controllers,
-    controller: controllers.horizontalBanner, // back-compat
     open: (key) => controllers[key]?.open(),
     close: (key) => controllers[key]?.close(),
-    test: (key) => controllers[key]?.runTest(),
-    openOverlay: () => controllers.horizontalBanner?.open(),
-    closeOverlay: () => controllers.horizontalBanner?.close()
+    test: (key) => controllers[key]?.runTest()
   };
 
   console.log(`${MODULE_ID} | ready`);

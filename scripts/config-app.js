@@ -1,5 +1,5 @@
 import { MODULE_ID, FIELD_DEFS, OVERLAYS, OVERLAY_KEYS, CARD_ANIMATIONS, defaultOverlayConfig } from "./constants.js";
-import { buildPreviewDocument } from "./overlay.js";
+import { buildPreviewDocument } from "./render.js";
 
 const TAB_LABELS = {
   horizontalBanner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },

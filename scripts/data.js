@@ -104,7 +104,6 @@ export function getActorViewData(actor) {
     },
     down,
     ac: ac.value ?? null,
-    level: sys.details?.level ?? null,
     classLabel: getClassLabel(actor),
     race: getRace(actor),
     abilities: getAbilities(actor),
