@@ -135,6 +135,7 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     cardAnimation: "fade",
     featuredIntro: false,
     featuredText: "Featured Character",
+    introLayout: "top",
     introDuration: 1.8,
     introPortraitSize: 48,
     introNameSize: 28,

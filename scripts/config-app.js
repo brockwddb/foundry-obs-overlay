@@ -33,6 +33,9 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     form: {
       handler: OverlayConfigApp.#onSubmit,
       closeOnSubmit: true
+    },
+    actions: {
+      apply: OverlayConfigApp.#onApply
     }
   };
 
@@ -88,6 +91,10 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const cardAnimations = CARD_ANIMATIONS.map(v => ({
       value: v, label: ANIM_LABELS[v], selected: (cfg.cardAnimation || "fade") === v
     }));
+    const introLayouts = [
+      { value: "top", label: "PCSTATS.IntroLayoutTop", selected: (cfg.introLayout || "top") !== "left" },
+      { value: "left", label: "PCSTATS.IntroLayoutLeft", selected: cfg.introLayout === "left" }
+    ];
 
     return {
       key,
@@ -100,7 +107,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       messages,
       fontFamilies,
       portraitShapes,
-      cardAnimations
+      cardAnimations,
+      introLayouts
     };
   }
 
@@ -131,6 +139,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       panes: OVERLAY_KEYS.map(key => this.#preparePane(key)),
       characters: this.#prepareCharacters(),
       buttons: [
+        { type: "button", action: "apply", icon: "fa-solid fa-check", label: "PCSTATS.Apply" },
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
       ]
     };
@@ -207,6 +216,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.cardAnimation = CARD_ANIMATIONS.includes(data.cardAnimation) ? data.cardAnimation : "fade";
     cfg.featuredIntro = !!data.featuredIntro;
     cfg.featuredText = String(data.featuredText ?? "").trim() || "Featured Character";
+    cfg.introLayout = data.introLayout === "left" ? "left" : "top";
     cfg.introDuration = Math.clamp(Number(data.introDuration ?? 1.8), 0.3, 10);
     cfg.introPortraitSize = Math.max(0, Number(data.introPortraitSize) || 48);
     cfg.introNameSize = Math.max(6, Number(data.introNameSize) || 28);
@@ -229,7 +239,20 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   static async #onSubmit(event, form, formData) {
     const data = foundry.utils.expandObject(formData.object);
+    await OverlayConfigApp.#persist(data);
+  }
 
+  // Save + apply without closing the window. Reads the live form values, so the
+  // user can preview changes on the real overlay and keep editing.
+  static async #onApply() {
+    const FDE = foundry.applications?.ux?.FormDataExtended ?? globalThis.FormDataExtended;
+    const data = foundry.utils.expandObject(new FDE(this.element).object);
+    await OverlayConfigApp.#persist(data);
+    ui.notifications?.info(game.i18n.localize("PCSTATS.Applied"));
+  }
+
+  // Persist everything and reload the open overlays. Shared by Save and Apply.
+  static async #persist(data) {
     // Global (shared by all overlays): selected characters + per-character styling.
     const selectedActors = Object.entries(data.actor ?? {})
       .filter(([, v]) => v)

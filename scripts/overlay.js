@@ -269,6 +269,21 @@ const BASE_CSS = `
     gap: 6px;
     text-align: center;
   }
+  .pcs-featured-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  /* Portrait-on-left layout: portrait beside the text instead of above it. */
+  .pcs-featured.pcs-featured-left {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+  .pcs-featured.pcs-featured-left .pcs-featured-text { align-items: flex-start; }
   /* The featured portrait is a .pcs-portrait-frame; this just adds the entrance
      animation. clip-path coexists with the animation transform. */
   .pcs-featured-portrait {
@@ -734,10 +749,13 @@ function buildIntroHTML(view, cfg) {
   const bio = bioText
     ? `<div class="pcs-featured-bio" style="font-size:${num(cfg.introBioSize, 16)}px">${esc(bioText)}</div>`
     : "";
-  return `<div class="pcs-featured">${portrait}` +
-    `<div class="pcs-featured-label">${label}</div>` +
-    `<div class="pcs-featured-name pcs-name" style="font-size:${num(cfg.introNameSize, 28)}px">${esc(view.name)}</div>` +
-    `${bio}</div>`;
+  const layoutCls = cfg.introLayout === "left" ? " pcs-featured-left" : "";
+  return `<div class="pcs-featured${layoutCls}">${portrait}` +
+    `<div class="pcs-featured-text">` +
+      `<div class="pcs-featured-label">${label}</div>` +
+      `<div class="pcs-featured-name pcs-name" style="font-size:${num(cfg.introNameSize, 28)}px">${esc(view.name)}</div>` +
+      `${bio}` +
+    `</div></div>`;
 }
 
 function buildMessageHTML(message, cfg) {
