@@ -27,8 +27,18 @@
 
       <p class="pcs-tab-intro">{{localize this.hint}}</p>
 
-      <details class="pcs-group" open>
-        <summary>{{localize "PCSTATS.GroupFields"}}</summary>
+      <nav class="pcs-subtabs">
+        <a class="pcs-subtab active" data-subtab="content">{{localize "PCSTATS.SubContent"}}</a>
+        <a class="pcs-subtab" data-subtab="portrait">{{localize "PCSTATS.SubPortrait"}}</a>
+        <a class="pcs-subtab" data-subtab="theme">{{localize "PCSTATS.SubTheme"}}</a>
+        <a class="pcs-subtab" data-subtab="hp">{{localize "PCSTATS.SubHp"}}</a>
+        <a class="pcs-subtab" data-subtab="combat">{{localize "PCSTATS.SubCombat"}}</a>
+        {{#if this.isBanner}}<a class="pcs-subtab" data-subtab="banner">{{localize "PCSTATS.SubBanner"}}</a>{{/if}}
+        <a class="pcs-subtab" data-subtab="window">{{localize "PCSTATS.SubWindow"}}</a>
+      </nav>
+
+      {{!-- Content: which fields show, their order, size and color --}}
+      <div class="pcs-subpane active" data-subpane="content">
         <p class="field-help">{{localize "PCSTATS.FieldsHint"}}</p>
         <table class="pcs-fields">
           <thead>
@@ -51,7 +61,7 @@
                 <td><input type="checkbox" name="{{../key}}.field.{{this.key}}.enabled" {{checked this.enabled}}></td>
                 <td>
                   {{#if this.isPortrait}}
-                    <span class="field-help inline">{{localize "PCSTATS.SizeInLayout"}}</span>
+                    <span class="field-help inline">{{localize "PCSTATS.SizeInPortrait"}}</span>
                   {{else}}
                     <input type="number" name="{{../key}}.field.{{this.key}}.fontSize" value="{{this.fontSize}}" min="6" max="120" step="1">
                   {{/if}}
@@ -66,10 +76,40 @@
             {{/each}}
           </tbody>
         </table>
-      </details>
+      </div>
 
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupPlate"}}</summary>
+      {{!-- Portrait: size, shape and border --}}
+      <div class="pcs-subpane" data-subpane="portrait">
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PortraitSize"}}</label>
+          <input type="number" name="{{this.key}}.portraitSize" value="{{this.cfg.portraitSize}}" min="20" max="400" step="2">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PortraitShape"}}</label>
+          <select name="{{this.key}}.portraitShape">
+            {{#each this.portraitShapes}}
+              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PortraitBorderEnabled"}}</label>
+          <input type="checkbox" name="{{this.key}}.portraitBorderEnabled" {{checked this.cfg.portraitBorderEnabled}}>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PortraitBorderColor"}}</label>
+          <input type="color" name="{{this.key}}.portraitBorderColor" value="{{this.cfg.portraitBorderColor}}">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PortraitBorderWidth"}}</label>
+          <input type="number" name="{{this.key}}.portraitBorderWidth" value="{{this.cfg.portraitBorderWidth}}" min="0" max="20" step="1">
+        </div>
+        <p class="field-help">{{localize "PCSTATS.PortraitCropNote"}}</p>
+      </div>
+
+      {{!-- Card & theme: plate background/border, fonts, colors, dividers --}}
+      <div class="pcs-subpane" data-subpane="theme">
+        <h4 class="pcs-subhead">{{localize "PCSTATS.GroupPlate"}}</h4>
         <p class="field-help">{{localize "PCSTATS.GroupPlateHelp"}}</p>
         <div class="form-group">
           <label>{{localize "PCSTATS.CardEnabled"}}</label>
@@ -110,10 +150,8 @@
           <label>{{localize "PCSTATS.BorderWidth"}}</label>
           <input type="number" name="{{this.key}}.borderWidth" value="{{this.cfg.borderWidth}}" min="0" max="12" step="1">
         </div>
-      </details>
 
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupText"}}</summary>
+        <h4 class="pcs-subhead">{{localize "PCSTATS.GroupText"}}</h4>
         <div class="form-group">
           <label>{{localize "PCSTATS.FontFamily"}}</label>
           <select name="{{this.key}}.fontFamily">
@@ -134,10 +172,10 @@
           <label>{{localize "PCSTATS.DividerColor"}}</label>
           <input type="color" name="{{this.key}}.dividerColor" value="{{this.cfg.dividerColor}}">
         </div>
-      </details>
+      </div>
 
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupHp"}}</summary>
+      {{!-- HP bar --}}
+      <div class="pcs-subpane" data-subpane="hp">
         <div class="form-group">
           <label>{{localize "PCSTATS.ShowHpBar"}}</label>
           <input type="checkbox" name="{{this.key}}.showHpBar" {{checked this.cfg.showHpBar}}>
@@ -179,167 +217,10 @@
           <label>{{localize "PCSTATS.HpLowThreshold"}}</label>
           <input type="number" name="{{this.key}}.hpLowThreshold" value="{{this.cfg.hpLowThreshold}}" min="0" max="100" step="1">
         </div>
-      </details>
+      </div>
 
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupLayout"}}</summary>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PortraitSize"}}</label>
-          <input type="number" name="{{this.key}}.portraitSize" value="{{this.cfg.portraitSize}}" min="20" max="400" step="2">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PortraitShape"}}</label>
-          <select name="{{this.key}}.portraitShape">
-            {{#each this.portraitShapes}}
-              <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
-            {{/each}}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PortraitBorderEnabled"}}</label>
-          <input type="checkbox" name="{{this.key}}.portraitBorderEnabled" {{checked this.cfg.portraitBorderEnabled}}>
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PortraitBorderColor"}}</label>
-          <input type="color" name="{{this.key}}.portraitBorderColor" value="{{this.cfg.portraitBorderColor}}">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PortraitBorderWidth"}}</label>
-          <input type="number" name="{{this.key}}.portraitBorderWidth" value="{{this.cfg.portraitBorderWidth}}" min="0" max="20" step="1">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.FieldGap"}}</label>
-          <input type="number" name="{{this.key}}.fieldGap" value="{{this.cfg.fieldGap}}" min="0" max="120" step="1">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PaddingX"}}</label>
-          <input type="number" name="{{this.key}}.paddingX" value="{{this.cfg.paddingX}}" min="0" max="200" step="1">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PaddingY"}}</label>
-          <input type="number" name="{{this.key}}.paddingY" value="{{this.cfg.paddingY}}" min="0" max="200" step="1">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.PlateEntrance"}}</label>
-          <input type="checkbox" name="{{this.key}}.plateEntrance" {{checked this.cfg.plateEntrance}}>
-          <span class="field-help inline">{{localize "PCSTATS.HelpPlateEntrance"}}</span>
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.MaxWidth"}}</label>
-          <input type="number" name="{{this.key}}.maxWidth" value="{{this.cfg.maxWidth}}" min="0" max="3840" step="10">
-        </div>
-        <div class="form-group">
-          <label>{{localize "PCSTATS.MaxHeight"}}</label>
-          <input type="number" name="{{this.key}}.maxHeight" value="{{this.cfg.maxHeight}}" min="0" max="2160" step="10">
-        </div>
-        <p class="field-help">{{localize "PCSTATS.HelpMaxSize"}}</p>
-      </details>
-
-      {{#if this.isBanner}}
-        <details class="pcs-group">
-          <summary>{{localize "PCSTATS.GroupRotation"}}</summary>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.RotateInterval"}}</label>
-            <input type="number" name="{{this.key}}.rotateInterval" value="{{this.cfg.rotateInterval}}" min="0" step="0.5">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.CardGap"}}</label>
-            <input type="number" name="{{this.key}}.cardGap" value="{{this.cfg.cardGap}}" min="0" max="600" step="1">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.CardAnimation"}}</label>
-            <select name="{{this.key}}.cardAnimation">
-              {{#each this.cardAnimations}}
-                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
-              {{/each}}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.CardTransition"}}</label>
-            <input type="number" name="{{this.key}}.cardTransition" value="{{this.cfg.cardTransition}}" min="0" max="5" step="0.05">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.FeaturedIntro"}}</label>
-            <input type="checkbox" name="{{this.key}}.featuredIntro" {{checked this.cfg.featuredIntro}}>
-          </div>
-          <p class="field-help">{{localize "PCSTATS.HelpFeaturedIntro"}}</p>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.FeaturedText"}}</label>
-            <input type="text" name="{{this.key}}.featuredText" value="{{this.cfg.featuredText}}" placeholder="Featured Character">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.IntroLayout"}}</label>
-            <select name="{{this.key}}.introLayout">
-              {{#each this.introLayouts}}
-                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
-              {{/each}}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.IntroDuration"}}</label>
-            <input type="number" name="{{this.key}}.introDuration" value="{{this.cfg.introDuration}}" min="0.3" max="10" step="0.1">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.IntroPortraitSize"}}</label>
-            <input type="number" name="{{this.key}}.introPortraitSize" value="{{this.cfg.introPortraitSize}}" min="0" max="600" step="2">
-            <span class="field-help inline">{{localize "PCSTATS.HelpIntroPortraitSize"}}</span>
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.IntroNameSize"}}</label>
-            <input type="number" name="{{this.key}}.introNameSize" value="{{this.cfg.introNameSize}}" min="6" max="200" step="1">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.IntroBioSize"}}</label>
-            <input type="number" name="{{this.key}}.introBioSize" value="{{this.cfg.introBioSize}}" min="6" max="120" step="1">
-            <span class="field-help inline">{{localize "PCSTATS.HelpIntroBio"}}</span>
-          </div>
-        </details>
-
-        <details class="pcs-group">
-          <summary>{{localize "PCSTATS.GroupMessages"}}</summary>
-          <p class="field-help">{{localize "PCSTATS.MessagesHint"}}</p>
-          <div class="pcs-msg-head">
-            <span class="pcs-msg-h-enable" title="{{localize "PCSTATS.Enabled"}}"></span>
-            <span class="pcs-msg-h-text">{{localize "PCSTATS.MessageText"}}</span>
-            <span class="pcs-msg-h-image">{{localize "PCSTATS.MessageImage"}}</span>
-            <span class="pcs-msg-h-weight" title="{{localize "PCSTATS.MessageWeight"}}">{{localize "PCSTATS.MessageWeightShort"}}</span>
-            <span class="pcs-msg-h-del"></span>
-          </div>
-          <div class="pcs-msg-rows">
-            {{#each this.messages}}
-              <div class="pcs-msg-row">
-                <input type="checkbox" name="{{../key}}.message.{{this.index}}.enabled" {{checked this.enabled}}>
-                <input type="text" class="pcs-msg-text" name="{{../key}}.message.{{this.index}}.text" value="{{this.text}}" placeholder="{{localize "PCSTATS.MessagePlaceholder"}}">
-                <input type="text" class="pcs-msg-image" name="{{../key}}.message.{{this.index}}.image" value="{{this.image}}" placeholder="{{localize "PCSTATS.ImagePlaceholder"}}">
-                <button type="button" class="pcs-msg-browse" title="{{localize "PCSTATS.Browse"}}"><i class="fa-solid fa-image"></i></button>
-                <input type="number" class="pcs-msg-weight" name="{{../key}}.message.{{this.index}}.weight" value="{{this.weight}}" min="1" max="10" step="1" title="{{localize "PCSTATS.MessageWeight"}}">
-                <button type="button" class="pcs-msg-remove" title="{{localize "PCSTATS.RemoveMessage"}}"><i class="fa-solid fa-trash"></i></button>
-              </div>
-            {{/each}}
-          </div>
-          <button type="button" class="pcs-msg-add"><i class="fa-solid fa-plus"></i> {{localize "PCSTATS.AddMessage"}}</button>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.MessageFrequency"}}</label>
-            <input type="number" name="{{this.key}}.messageFrequency" value="{{this.cfg.messageFrequency}}" min="0" max="20" step="1">
-            <span class="field-help inline">{{localize "PCSTATS.HelpMessageFreq"}}</span>
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.MessageFontSize"}}</label>
-            <input type="number" name="{{this.key}}.messageFontSize" value="{{this.cfg.messageFontSize}}" min="6" max="120" step="1">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.MessageColor"}}</label>
-            <input type="color" name="{{this.key}}.messageColor" value="{{this.cfg.messageColor}}">
-          </div>
-          <div class="form-group">
-            <label>{{localize "PCSTATS.MessageImageHeight"}}</label>
-            <input type="number" name="{{this.key}}.messageImageHeight" value="{{this.cfg.messageImageHeight}}" min="10" max="600" step="5">
-          </div>
-        </details>
-      {{/if}}
-
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupCombat"}}</summary>
+      {{!-- Combat & dice --}}
+      <div class="pcs-subpane" data-subpane="combat">
         <p class="field-help">{{localize "PCSTATS.CombatHint"}}</p>
         <div class="form-group">
           <label>{{localize "PCSTATS.CombatAnimations"}}</label>
@@ -394,10 +275,143 @@
             <span class="field-help inline">{{localize "PCSTATS.HelpSpotlight"}}</span>
           </div>
         {{/if}}
-      </details>
+      </div>
 
-      <details class="pcs-group">
-        <summary>{{localize "PCSTATS.GroupWindow"}}</summary>
+      {{#if this.isBanner}}
+        {{!-- Banner: rotation, featured intro, messages --}}
+        <div class="pcs-subpane" data-subpane="banner">
+          <h4 class="pcs-subhead">{{localize "PCSTATS.GroupRotation"}}</h4>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.RotateInterval"}}</label>
+            <input type="number" name="{{this.key}}.rotateInterval" value="{{this.cfg.rotateInterval}}" min="0" step="0.5">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.CardGap"}}</label>
+            <input type="number" name="{{this.key}}.cardGap" value="{{this.cfg.cardGap}}" min="0" max="600" step="1">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.CardAnimation"}}</label>
+            <select name="{{this.key}}.cardAnimation">
+              {{#each this.cardAnimations}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.CardTransition"}}</label>
+            <input type="number" name="{{this.key}}.cardTransition" value="{{this.cfg.cardTransition}}" min="0" max="5" step="0.05">
+          </div>
+
+          <h4 class="pcs-subhead">{{localize "PCSTATS.SubFeatured"}}</h4>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.FeaturedIntro"}}</label>
+            <input type="checkbox" name="{{this.key}}.featuredIntro" {{checked this.cfg.featuredIntro}}>
+          </div>
+          <p class="field-help">{{localize "PCSTATS.HelpFeaturedIntro"}}</p>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.FeaturedText"}}</label>
+            <input type="text" name="{{this.key}}.featuredText" value="{{this.cfg.featuredText}}" placeholder="Featured Character">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroLayout"}}</label>
+            <select name="{{this.key}}.introLayout">
+              {{#each this.introLayouts}}
+                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{localize this.label}}</option>
+              {{/each}}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroDuration"}}</label>
+            <input type="number" name="{{this.key}}.introDuration" value="{{this.cfg.introDuration}}" min="0.3" max="10" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroPortraitSize"}}</label>
+            <input type="number" name="{{this.key}}.introPortraitSize" value="{{this.cfg.introPortraitSize}}" min="0" max="600" step="2">
+            <span class="field-help inline">{{localize "PCSTATS.HelpIntroPortraitSize"}}</span>
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroNameSize"}}</label>
+            <input type="number" name="{{this.key}}.introNameSize" value="{{this.cfg.introNameSize}}" min="6" max="200" step="1">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.IntroBioSize"}}</label>
+            <input type="number" name="{{this.key}}.introBioSize" value="{{this.cfg.introBioSize}}" min="6" max="120" step="1">
+            <span class="field-help inline">{{localize "PCSTATS.HelpIntroBio"}}</span>
+          </div>
+
+          <h4 class="pcs-subhead">{{localize "PCSTATS.GroupMessages"}}</h4>
+          <p class="field-help">{{localize "PCSTATS.MessagesHint"}}</p>
+          <div class="pcs-msg-head">
+            <span class="pcs-msg-h-enable" title="{{localize "PCSTATS.Enabled"}}"></span>
+            <span class="pcs-msg-h-text">{{localize "PCSTATS.MessageText"}}</span>
+            <span class="pcs-msg-h-image">{{localize "PCSTATS.MessageImage"}}</span>
+            <span class="pcs-msg-h-weight" title="{{localize "PCSTATS.MessageWeight"}}">{{localize "PCSTATS.MessageWeightShort"}}</span>
+            <span class="pcs-msg-h-del"></span>
+          </div>
+          <div class="pcs-msg-rows">
+            {{#each this.messages}}
+              <div class="pcs-msg-row">
+                <input type="checkbox" name="{{../key}}.message.{{this.index}}.enabled" {{checked this.enabled}}>
+                <input type="text" class="pcs-msg-text" name="{{../key}}.message.{{this.index}}.text" value="{{this.text}}" placeholder="{{localize "PCSTATS.MessagePlaceholder"}}">
+                <input type="text" class="pcs-msg-image" name="{{../key}}.message.{{this.index}}.image" value="{{this.image}}" placeholder="{{localize "PCSTATS.ImagePlaceholder"}}">
+                <button type="button" class="pcs-msg-browse" title="{{localize "PCSTATS.Browse"}}"><i class="fa-solid fa-image"></i></button>
+                <input type="number" class="pcs-msg-weight" name="{{../key}}.message.{{this.index}}.weight" value="{{this.weight}}" min="1" max="10" step="1" title="{{localize "PCSTATS.MessageWeight"}}">
+                <button type="button" class="pcs-msg-remove" title="{{localize "PCSTATS.RemoveMessage"}}"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            {{/each}}
+          </div>
+          <button type="button" class="pcs-msg-add"><i class="fa-solid fa-plus"></i> {{localize "PCSTATS.AddMessage"}}</button>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.MessageFrequency"}}</label>
+            <input type="number" name="{{this.key}}.messageFrequency" value="{{this.cfg.messageFrequency}}" min="0" max="20" step="1">
+            <span class="field-help inline">{{localize "PCSTATS.HelpMessageFreq"}}</span>
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.MessageFontSize"}}</label>
+            <input type="number" name="{{this.key}}.messageFontSize" value="{{this.cfg.messageFontSize}}" min="6" max="120" step="1">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.MessageColor"}}</label>
+            <input type="color" name="{{this.key}}.messageColor" value="{{this.cfg.messageColor}}">
+          </div>
+          <div class="form-group">
+            <label>{{localize "PCSTATS.MessageImageHeight"}}</label>
+            <input type="number" name="{{this.key}}.messageImageHeight" value="{{this.cfg.messageImageHeight}}" min="10" max="600" step="5">
+          </div>
+        </div>
+      {{/if}}
+
+      {{!-- Window & spacing: gaps, padding, max size, chroma, window size --}}
+      <div class="pcs-subpane" data-subpane="window">
+        <h4 class="pcs-subhead">{{localize "PCSTATS.SubSpacing"}}</h4>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.FieldGap"}}</label>
+          <input type="number" name="{{this.key}}.fieldGap" value="{{this.cfg.fieldGap}}" min="0" max="120" step="1">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PaddingX"}}</label>
+          <input type="number" name="{{this.key}}.paddingX" value="{{this.cfg.paddingX}}" min="0" max="200" step="1">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PaddingY"}}</label>
+          <input type="number" name="{{this.key}}.paddingY" value="{{this.cfg.paddingY}}" min="0" max="200" step="1">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.PlateEntrance"}}</label>
+          <input type="checkbox" name="{{this.key}}.plateEntrance" {{checked this.cfg.plateEntrance}}>
+          <span class="field-help inline">{{localize "PCSTATS.HelpPlateEntrance"}}</span>
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.MaxWidth"}}</label>
+          <input type="number" name="{{this.key}}.maxWidth" value="{{this.cfg.maxWidth}}" min="0" max="3840" step="10">
+        </div>
+        <div class="form-group">
+          <label>{{localize "PCSTATS.MaxHeight"}}</label>
+          <input type="number" name="{{this.key}}.maxHeight" value="{{this.cfg.maxHeight}}" min="0" max="2160" step="10">
+        </div>
+        <p class="field-help">{{localize "PCSTATS.HelpMaxSize"}}</p>
+
+        <h4 class="pcs-subhead">{{localize "PCSTATS.GroupWindow"}}</h4>
         <p class="field-help">{{localize "PCSTATS.GroupWindowHelp"}}</p>
         <div class="form-group">
           <label>{{localize "PCSTATS.BgColor"}}</label>
@@ -411,7 +425,7 @@
           <label>{{localize "PCSTATS.BannerHeight"}}</label>
           <input type="number" name="{{this.key}}.bannerHeight" value="{{this.cfg.bannerHeight}}" min="50" max="1080" step="10">
         </div>
-      </details>
+      </div>
 
       <div class="pcs-pane-actions">
         <button type="button" class="pcs-test" data-test="{{this.key}}">
@@ -419,6 +433,9 @@
         </button>
         <button type="button" class="pcs-reset" data-reset="{{this.key}}">
           <i class="fa-solid fa-rotate-left"></i> {{localize "PCSTATS.ResetDefaults"}}
+        </button>
+        <button type="button" class="pcs-copy-all" data-src="{{this.key}}" title="{{localize "PCSTATS.CopyAllHint"}}">
+          <i class="fa-solid fa-copy"></i> {{localize "PCSTATS.CopyToAll"}}
         </button>
       </div>
     </div>
@@ -443,7 +460,7 @@
       </div>
     </details>
 
-    <details class="pcs-group">
+    <details class="pcs-group" open>
       <summary>{{localize "PCSTATS.GroupCharacterStyles"}}</summary>
       <p class="field-help">{{localize "PCSTATS.StylingHint"}}</p>
       <div class="pcs-char-list">

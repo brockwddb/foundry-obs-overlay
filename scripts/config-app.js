@@ -308,7 +308,57 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     }
     this.#wireCharacterStyles();
     this.#wireCropPreviews();
+    this.#wireSubTabs();
+    this.#wireCopyAll();
     this.#wirePreviews();
+  }
+
+  // Secondary tab strip inside each overlay pane: show one section at a time.
+  #wireSubTabs() {
+    for (const pane of this.element.querySelectorAll(".pcs-pane[data-pane]")) {
+      const tabs = [...pane.querySelectorAll(".pcs-subtab")];
+      const subpanes = [...pane.querySelectorAll(".pcs-subpane")];
+      if (!tabs.length) continue;
+      for (const tab of tabs) {
+        tab.addEventListener("click", () => {
+          const key = tab.dataset.subtab;
+          tabs.forEach(t => t.classList.toggle("active", t === tab));
+          subpanes.forEach(p => p.classList.toggle("active", p.dataset.subpane === key));
+        });
+      }
+    }
+  }
+
+  // Per-overlay "Copy to all overlays": save the live form first, then copy this
+  // overlay's config onto the others (keeping each target's own window size).
+  #wireCopyAll() {
+    const L = (k) => game.i18n.localize(k);
+    for (const btn of this.element.querySelectorAll(".pcs-copy-all")) {
+      btn.addEventListener("click", async () => {
+        const src = btn.dataset.src;
+        if (!src) return;
+        const ok = await foundry.applications.api.DialogV2.confirm({
+          window: { title: L("PCSTATS.CopyToAll") },
+          content: `<p>${L("PCSTATS.CopyAllConfirm")}</p>`
+        });
+        if (!ok) return;
+        const FDE = foundry.applications?.ux?.FormDataExtended ?? globalThis.FormDataExtended;
+        const data = foundry.utils.expandObject(new FDE(this.element).object);
+        await OverlayConfigApp.#persist(data);
+        const srcCfg = game.settings.get(MODULE_ID, `${src}Config`) ?? {};
+        const api = game.modules.get(MODULE_ID).api;
+        for (const key of OVERLAY_KEYS) {
+          if (key === src) continue;
+          const tgtCfg = game.settings.get(MODULE_ID, `${key}Config`) ?? {};
+          const merged = foundry.utils.mergeObject(srcCfg, {
+            bannerWidth: tgtCfg.bannerWidth, bannerHeight: tgtCfg.bannerHeight
+          }, { inplace: false });
+          await game.settings.set(MODULE_ID, `${key}Config`, merged);
+          api?.controllers?.[key]?.reload();
+        }
+        ui.notifications?.info(L("PCSTATS.CopyAllDone"));
+      });
+    }
   }
 
   // Live-update each character row's thumbnail as its crop fields change, so the
