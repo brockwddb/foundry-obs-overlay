@@ -25,7 +25,7 @@ export function fontLinks(key) {
 }
 
 // Base CSS injected into the popout document. Colors/fonts/backgrounds are NOT
-// set here â€” those come from the per-overlay config via the dynamic style block,
+// set here — those come from the per-overlay config via the dynamic style block,
 // so every visual is editable in the config window.
 export const BASE_CSS = `
   html, body {
@@ -444,9 +444,9 @@ function renderField(f, view, cfg) {
       return init === null ? "" : `<div class="pcs-field" ${fs}>Init ${esc(init)}</div>`;
     }
     case "concentration":
-      return view.concentration ? `<div class="pcs-field pcs-conc" ${fs}>âœ¦ Conc.</div>` : "";
+      return view.concentration ? `<div class="pcs-field pcs-conc" ${fs}>✦ Conc.</div>` : "";
     case "inspiration":
-      return view.inspiration ? `<div class="pcs-field pcs-insp" ${fs}>â˜… Insp.</div>` : "";
+      return view.inspiration ? `<div class="pcs-field pcs-insp" ${fs}>★ Insp.</div>` : "";
     case "exhaustion":
       return view.exhaustion > 0 ? `<div class="pcs-field" ${fs}>Exh. ${esc(view.exhaustion)}</div>` : "";
     case "spellSlots": {
@@ -613,6 +613,7 @@ const SAMPLE_VIEW = {
   hp: { value: 22, max: 30, temp: 0, pct: 73 },
   down: false,
   ac: 16,
+  level: 5,
   classLabel: "Fighter 5",
   race: "Half-Elf",
   abilities: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].map((label, i) => ({
@@ -647,7 +648,7 @@ function stateDecoration(cfg, state) {
     overlay: `<div class="pcs-hit ${textCls}" style="color:${esc(color)}">${esc(text)}</div>`
   });
   switch (state) {
-    case "damage": return make("pcs-flash-damage", cfg.damageColor || "#a01e12", "âˆ’7", "pcs-hit-damage");
+    case "damage": return make("pcs-flash-damage", cfg.damageColor || "#a01e12", "−7", "pcs-hit-damage");
     case "heal": return make("pcs-flash-heal", cfg.healColor || "#3f7d28", "+5", "pcs-hit-heal");
     case "crit": return make("pcs-flair-crit", cfg.critColor || "#ffd700", "NAT 20!", "pcs-flair-text");
     case "fumble": return make("pcs-flair-fumble", cfg.fumbleColor || "#7a2230", "NAT 1!", "pcs-flair-text");
@@ -738,7 +739,7 @@ export function buildIntroHTML(view, cfg) {
   const src = (useToken && view.tokenImg) ? view.tokenImg : view.img;
   const pSize = num(cfg.introPortraitSize, 48);
   const portrait = (src && pSize > 0)
-    ? `<div class="pcs-portrait-frame pcs-featured-portrait" style="height:${pSize}px;width:${pSize}px;${portraitShapeCss("circle")}${portraitBorderCss(cfg)}">` +
+    ? `<div class="pcs-portrait-frame pcs-featured-portrait" style="height:${pSize}px;width:${pSize}px;${portraitShapeCss(cfg.portraitShape)}${portraitBorderCss(cfg)}">` +
         `<img class="pcs-portrait" src="${esc(src)}" style="${portraitImgStyle(style)}"></div>`
     : "";
   const label = esc(style.intro || cfg.featuredText || "Featured Character");

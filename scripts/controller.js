@@ -49,7 +49,7 @@ export class OverlayController {
   // Build the carousel queue: character slides with sponsor/custom messages
   // sprinkled in after every `messageFrequency` characters. The sequence spans
   // whole rotation cycles (LCM of character count and frequency) so a message
-  // shows once per N characters even when N > the number of characters â€” and it
+  // shows once per N characters even when N > the number of characters — and it
   // loops seamlessly. Messages are repeated by weight so heavier ones recur.
   getSlides(cfg = this.cfg()) {
     const actors = this.getActors().map(a => ({ type: "actor", actor: a }));
@@ -120,7 +120,7 @@ export class OverlayController {
 
   // Full HTML for the popout. Loaded as a real document (blob URL) so the
   // browser honours <title> as the OS window title (about:blank popups don't,
-  // e.g. Vivaldi shows just "Vivaldi" â€” which breaks OBS window capture).
+  // e.g. Vivaldi shows just "Vivaldi" — which breaks OBS window capture).
   _skeletonHtml(cfg = this.cfg(), nonce = "") {
     const fonts = fontLinks(cfg.fontFamily);
     const css = BASE_CSS + dynamicCss(cfg);
@@ -173,7 +173,7 @@ export class OverlayController {
   }
 
   // When maxWidth/maxHeight are set, scale the whole composition (fonts,
-  // portraits, bars â€” everything) to fit within that box, preserving the
+  // portraits, bars — everything) to fit within that box, preserving the
   // relative font sizes the user chose. When unset, content renders at the
   // configured sizes.
   _applyScale(el, cfg) {
@@ -473,7 +473,7 @@ export class OverlayController {
     const hit = this.popup.document.createElement("div");
     hit.className = "pcs-hit " + (isHeal ? "pcs-hit-heal" : "pcs-hit-damage");
     hit.style.color = color;
-    hit.textContent = (isHeal ? "+" : "âˆ’") + Math.abs(event.delta);
+    hit.textContent = (isHeal ? "+" : "−") + Math.abs(event.delta);
     el.appendChild(hit);
 
     this._animateHp(el, event.oldHp, event.newHp, event.max, 900);
@@ -509,7 +509,7 @@ export class OverlayController {
 
     if (this.mode === "carousel") {
       // Keep the hit character on screen and make the loop resume FROM that
-      // character, then wait the normal display time before advancing â€” don't
+      // character, then wait the normal display time before advancing — don't
       // snap to another card or restart the loop from the beginning.
       const card = this.isOpen ? this.popup.document.getElementById("pcs-card") : null;
       if (card) card.classList.remove("pcs-flash-damage", "pcs-flash-heal", "pcs-flair-crit", "pcs-flair-fumble");
@@ -524,7 +524,7 @@ export class OverlayController {
     }
   }
 
-  // Fire a synthetic damage â†’ heal â†’ crit sequence so OBS can be set up
+  // Fire a synthetic damage → heal → crit sequence so OBS can be set up
   // without a live session. Uses the first selected character.
   runTest() {
     if (!this.isOpen) { ui.notifications?.warn(game.i18n.localize("PCSTATS.TestNotOpen")); return; }
@@ -582,12 +582,12 @@ export class OverlayController {
           return;
         }
       }
-      this.startRotation();           // combat ended / no combatant â†’ resume
+      this.startRotation();           // combat ended / no combatant → resume
     }
     this.render();
   }
 
-  // A chat message landed â€” check it for a nat 20 / nat 1 by a selected actor.
+  // A chat message landed — check it for a nat 20 / nat 1 by a selected actor.
   onCreateChatMessage(message) {
     if (!this.isOpen) return;
     const cfg = this.cfg();
