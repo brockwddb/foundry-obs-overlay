@@ -25,6 +25,14 @@ export function registerSettings() {
     default: {}
   });
 
+  // Optional filters that narrow the selected roster at render time.
+  game.settings.register(MODULE_ID, "rosterFilters", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
   game.settings.register(MODULE_ID, "accessRole", {
     name: "PCSTATS.AccessRole",
     hint: "PCSTATS.AccessRoleHint",

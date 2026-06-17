@@ -38,7 +38,23 @@ export class OverlayController {
   }
 
   getActors() {
-    return this._selectedIds().map(id => game.actors.get(id)).filter(a => a);
+    let actors = this._selectedIds().map(id => game.actors.get(id)).filter(a => a);
+    const f = game.settings.get(MODULE_ID, "rosterFilters") ?? {};
+
+    if (f.online) {
+      actors = actors.filter(a =>
+        game.users.some(u => !u.isGM && u.active && a.testUserPermission?.(u, "OWNER")));
+    }
+    if (f.scene) {
+      const scene = game.scenes?.active ?? canvas?.scene;
+      const ids = new Set([...(scene?.tokens ?? [])].map(t => t.actorId).filter(Boolean));
+      actors = actors.filter(a => ids.has(a.id));
+    }
+    if (f.combat && game.combat?.started) {
+      const ids = new Set(game.combat.combatants.map(c => c.actorId));
+      actors = actors.filter(a => ids.has(a.id));
+    }
+    return actors;
   }
 
   getMessages(cfg = this.cfg()) {
@@ -613,8 +629,8 @@ export class OverlayController {
     }
 
     const refresh = () => { if (this.isOpen && !this.animating) this.render(); };
-    for (const hook of ["updateToken", "deleteActor",
-      "createActiveEffect", "deleteActiveEffect", "updateActiveEffect"]) {
+    for (const hook of ["updateToken", "deleteActor", "createToken", "deleteToken",
+      "userConnected", "createActiveEffect", "deleteActiveEffect", "updateActiveEffect"]) {
       this._hookIds.push([hook, Hooks.on(hook, refresh)]);
     }
   }

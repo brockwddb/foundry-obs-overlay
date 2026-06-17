@@ -136,9 +136,11 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   async _prepareContext() {
+    const roster = game.settings.get(MODULE_ID, "rosterFilters") ?? {};
     return {
       panes: OVERLAY_KEYS.map(key => this.#preparePane(key)),
       characters: this.#prepareCharacters(),
+      roster: { online: !!roster.online, scene: !!roster.scene, combat: !!roster.combat },
       buttons: [
         { type: "button", action: "apply", icon: "fa-solid fa-check", label: "PCSTATS.Apply" },
         { type: "submit", icon: "fa-solid fa-floppy-disk", label: "PCSTATS.Save" }
@@ -259,6 +261,11 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       .filter(([, v]) => v)
       .map(([id]) => id);
     await game.settings.set(MODULE_ID, "selectedActors", selectedActors);
+
+    const roster = data.roster ?? {};
+    await game.settings.set(MODULE_ID, "rosterFilters", {
+      online: !!roster.online, scene: !!roster.scene, combat: !!roster.combat
+    });
 
     const characterStyles = {};
     for (const [id, v] of Object.entries(data.characters ?? {})) {
@@ -486,6 +493,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         version: game.modules.get(MODULE_ID)?.version ?? "",
         configs: {},
         characterStyles: game.settings.get(MODULE_ID, "characterStyles") ?? {},
+        rosterFilters: game.settings.get(MODULE_ID, "rosterFilters") ?? {},
         accessRole: game.settings.get(MODULE_ID, "accessRole")
       };
       for (const key of OVERLAY_KEYS) data.configs[key] = game.settings.get(MODULE_ID, `${key}Config`);
@@ -504,6 +512,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
           if (data.configs?.[key]) await game.settings.set(MODULE_ID, `${key}Config`, data.configs[key]);
         }
         if (data.characterStyles) await game.settings.set(MODULE_ID, "characterStyles", data.characterStyles);
+        if (data.rosterFilters) await game.settings.set(MODULE_ID, "rosterFilters", data.rosterFilters);
         if (typeof data.accessRole === "number") await game.settings.set(MODULE_ID, "accessRole", data.accessRole);
         for (const key of OVERLAY_KEYS) game.modules.get(MODULE_ID).api?.controllers?.[key]?.reload();
         ui.notifications?.info(L("PCSTATS.ImportDone"));

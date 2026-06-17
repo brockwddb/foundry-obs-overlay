@@ -458,6 +458,21 @@
           <p class="field-help">{{localize "PCSTATS.NoCharacterActors"}}</p>
         {{/each}}
       </div>
+      <p class="field-help">{{localize "PCSTATS.RosterFiltersHint"}}</p>
+      <div class="pcs-roster-filters">
+        <label class="pcs-char-opt">
+          <input type="checkbox" name="roster.online" {{checked roster.online}}>
+          {{localize "PCSTATS.FilterOnline"}}
+        </label>
+        <label class="pcs-char-opt">
+          <input type="checkbox" name="roster.scene" {{checked roster.scene}}>
+          {{localize "PCSTATS.FilterScene"}}
+        </label>
+        <label class="pcs-char-opt">
+          <input type="checkbox" name="roster.combat" {{checked roster.combat}}>
+          {{localize "PCSTATS.FilterCombat"}}
+        </label>
+      </div>
     </details>
 
     <details class="pcs-group" open>
