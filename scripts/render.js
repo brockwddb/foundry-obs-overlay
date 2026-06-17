@@ -342,7 +342,7 @@ export function num(v, fallback = 0) {
 }
 
 function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
-function lcm(a, b) { return (a && b) ? Math.abs(a * b) / gcd(a, b) : 0; }
+export function lcm(a, b) { return (a && b) ? Math.abs(a * b) / gcd(a, b) : 0; }
 
 // Mix a hex color toward white (255) or black (0) by amt, returning rgba.
 function mix(hex, target, amt, alpha) {
@@ -489,7 +489,7 @@ export function activeCombatantActorId() {
 }
 
 // Inspect a chat message's rolls for a natural 20 / natural 1 on a d20.
-function rollFlairType(message) {
+export function rollFlairType(message) {
   for (const roll of message.rolls ?? []) {
     for (const die of roll.dice ?? []) {
       if (die.faces !== 20) continue;

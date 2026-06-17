@@ -3,7 +3,7 @@ import { getActorViewData } from "./data.js";
 import {
   BASE_CSS, dynamicCss, fontLinks, esc, num, hexToRgba, characterStyle,
   buildCardHTML, buildMessageHTML, buildIntroHTML, buildFieldParts, downBadge,
-  accentBorderCss, activeCombatantActorId
+  accentBorderCss, activeCombatantActorId, lcm, rollFlairType
 } from "./render.js";
 
 const DEFAULT_TRANSITION_S = 0.25;
