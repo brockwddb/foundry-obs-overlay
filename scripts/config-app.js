@@ -124,6 +124,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
         selected: selected.has(a.id),
         intro: styles[a.id]?.intro || "",
         bio: styles[a.id]?.bio || "",
+        pronouns: styles[a.id]?.pronouns || "",
         accentOn: !!styles[a.id]?.accent,
         accent: styles[a.id]?.accent || "#b08d3c",
         portraitToken: styles[a.id]?.portrait === "token",
@@ -268,6 +269,8 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       if (intro) style.intro = intro;
       const bio = String(v?.bio ?? "").trim();
       if (bio) style.bio = bio;
+      const pronouns = String(v?.pronouns ?? "").trim();
+      if (pronouns) style.pronouns = pronouns;
       // Portrait crop: only persist when it differs from the default framing.
       const cropX = Math.clamp(Number(v?.cropX ?? 50), 0, 100);
       const cropY = Math.clamp(Number(v?.cropY ?? 0), 0, 100);

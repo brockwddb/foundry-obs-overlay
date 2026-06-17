@@ -9,6 +9,8 @@ export const FIELD_DEFS = {
   abilities: "PCSTATS.FieldAbilities",
   classLevel: "PCSTATS.FieldClassLevel",
   race: "PCSTATS.FieldRace",
+  player: "PCSTATS.FieldPlayer",
+  resources: "PCSTATS.FieldResources",
   conditions: "PCSTATS.FieldConditions",
   deathSaves: "PCSTATS.FieldDeathSaves",
   initiative: "PCSTATS.FieldInitiative",

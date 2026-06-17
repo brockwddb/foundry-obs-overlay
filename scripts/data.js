@@ -74,6 +74,27 @@ function getCurrency(actor) {
     .filter(x => x.value > 0);
 }
 
+// Character resources (rage, ki, sorcery points, etc.) from the standard
+// dnd5e primary/secondary/tertiary resource slots that have a max set.
+function getResources(actor) {
+  const res = actor.system?.resources ?? {};
+  const out = [];
+  for (const key of ["primary", "secondary", "tertiary"]) {
+    const r = res[key];
+    const max = Number(r?.max ?? 0);
+    if (!r || !(max > 0)) continue;
+    out.push({ label: String(r.label ?? "").trim() || key, value: Number(r.value ?? 0), max });
+  }
+  return out;
+}
+
+// Name of the (non-GM) player who owns this actor, preferring an online one.
+function getPlayerName(actor) {
+  const owners = (game.users ?? []).filter(u => !u.isGM && actor.testUserPermission?.(u, "OWNER"));
+  if (!owners.length) return "";
+  return ((owners.find(u => u.active) ?? owners[0]).name ?? "").trim();
+}
+
 function isConcentrating(actor) {
   if (actor.statuses?.has?.("concentrating")) return true;
   // dnd5e v3+ also exposes a concentration effects collection.
@@ -106,6 +127,8 @@ export function getActorViewData(actor) {
     ac: ac.value ?? null,
     classLabel: getClassLabel(actor),
     race: getRace(actor),
+    playerName: getPlayerName(actor),
+    resources: getResources(actor),
     abilities: getAbilities(actor),
     conditions: getConditions(actor),
     deathSaves: {

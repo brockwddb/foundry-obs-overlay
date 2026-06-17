@@ -171,6 +171,12 @@ export const BASE_CSS = `
   .pcs-slots { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
   .pcs-slot b { opacity: 0.8; }
   .pcs-currency { letter-spacing: 0.5px; }
+  .pcs-resources { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .pcs-resource { display: inline-flex; align-items: center; gap: 5px; }
+  .pcs-resource b { opacity: 0.85; }
+  .pcs-res-val { display: inline-flex; gap: 3px; align-items: center; }
+  .pcs-pip-res { background: #b8860b; }
+  .pcs-player { opacity: 0.9; }
 
   /* Down / dead and active-turn states */
   .pcs-down {
@@ -430,6 +436,22 @@ function renderField(f, view, cfg) {
       return view.classLabel ? `<div class="pcs-field" ${fs}>${esc(view.classLabel)}</div>` : "";
     case "race":
       return view.race ? `<div class="pcs-field" ${fs}>${esc(view.race)}</div>` : "";
+    case "player": {
+      const pronouns = String(characterStyle(view.id).pronouns ?? "").trim();
+      const txt = [view.playerName, pronouns ? `(${pronouns})` : ""].filter(Boolean).join(" ");
+      return txt ? `<div class="pcs-field pcs-player" ${fs}>${esc(txt)}</div>` : "";
+    }
+    case "resources": {
+      if (!view.resources.length) return "";
+      const cells = view.resources.map(r => {
+        const inner = r.max <= 8
+          ? [0, 1, 2, 3, 4, 5, 6, 7].slice(0, r.max)
+              .map(i => `<span class="pcs-pip ${i < r.value ? "pcs-pip-res" : "pcs-pip-empty"}"></span>`).join("")
+          : `${esc(r.value)}/${esc(r.max)}`;
+        return `<span class="pcs-resource"><b>${esc(r.label)}</b> <span class="pcs-res-val">${inner}</span></span>`;
+      }).join("");
+      return `<div class="pcs-field pcs-resources" ${fs}>${cells}</div>`;
+    }
     case "conditions": {
       if (!view.conditions.length) return "";
       const items = view.conditions.map(c =>
@@ -624,6 +646,8 @@ const SAMPLE_VIEW = {
   level: 5,
   classLabel: "Fighter 5",
   race: "Half-Elf",
+  playerName: "Alex",
+  resources: [{ label: "Rage", value: 2, max: 3 }],
   abilities: ["STR", "DEX", "CON", "INT", "WIS", "CHA"].map((label, i) => ({
     key: label.toLowerCase(), label, value: 14 + i % 3, mod: 2, modStr: "+2"
   })),
