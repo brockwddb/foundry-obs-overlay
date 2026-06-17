@@ -289,6 +289,13 @@
             <span class="field-help inline">{{localize "PCSTATS.HelpSpotlight"}}</span>
           </div>
         {{/if}}
+        {{#if this.isInitiative}}
+          <div class="form-group">
+            <label>{{localize "PCSTATS.TurnOrderPlayersOnly"}}</label>
+            <input type="checkbox" name="{{this.key}}.turnOrderPlayersOnly" {{checked this.cfg.turnOrderPlayersOnly}}>
+            <span class="field-help inline">{{localize "PCSTATS.HelpTurnOrderPlayersOnly"}}</span>
+          </div>
+        {{/if}}
       </div>
 
       {{#if this.isBanner}}

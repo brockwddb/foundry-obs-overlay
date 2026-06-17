@@ -47,11 +47,12 @@ export const OVERLAYS = {
   horizontalBanner: { mode: "carousel", windowName: "pcstats-horizontal-banner", windowTitle: "PC Stats — Horizontal Banner" },
   verticalBanner: { mode: "carousel", column: true, windowName: "pcstats-vertical-banner", windowTitle: "PC Stats — Vertical Banner" },
   partyRow: { mode: "party", windowName: "pcstats-party-row", windowTitle: "PC Stats — Party Row" },
-  partyColumn: { mode: "vertical", windowName: "pcstats-party-column", windowTitle: "PC Stats — Party Column" }
+  partyColumn: { mode: "vertical", windowName: "pcstats-party-column", windowTitle: "PC Stats — Party Column" },
+  turnOrder: { mode: "initiative", windowName: "pcstats-turn-order", windowTitle: "PC Stats — Turn Order" }
 };
 
 // Overlay keys in display order (shared by the menu and the config tabs).
-export const OVERLAY_KEYS = ["horizontalBanner", "verticalBanner", "partyRow", "partyColumn"];
+export const OVERLAY_KEYS = ["horizontalBanner", "verticalBanner", "partyRow", "partyColumn", "turnOrder"];
 
 // Selectable card transition animations (banner/carousel only).
 export const CARD_ANIMATIONS = ["fade", "slide", "slidev", "wipe", "zoom", "flip", "none"];
@@ -63,14 +64,15 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
   const entry = OVERLAYS[keyOrMode];
   const mode = entry ? entry.mode : keyOrMode;
   const column = entry ? !!entry.column : false;
-  const plates = mode === "party" || mode === "vertical"; // multi-character layouts
+  const plates = mode === "party" || mode === "vertical" || mode === "initiative"; // multi-character layouts
   const vcard = mode === "carousel" && column;            // single vertical card
+  const tall = mode === "vertical" || mode === "initiative"; // narrow vertical column
 
   let bannerWidth, bannerHeight, portraitSize, fieldGap, paddingX;
   if (plates) {
     portraitSize = 64; fieldGap = 6; paddingX = 12;
-    bannerWidth = mode === "vertical" ? 360 : 1600;
-    bannerHeight = mode === "vertical" ? 900 : 150;
+    bannerWidth = tall ? 360 : 1600;
+    bannerHeight = tall ? 900 : 150;
   } else if (vcard) {
     portraitSize = 110; fieldGap = 8; paddingX = 18;
     bannerWidth = 360; bannerHeight = 600;
@@ -130,6 +132,7 @@ export function defaultOverlayConfig(keyOrMode = "horizontalBanner") {
     diceFlair: true,
     critColor: "#ffd700",
     fumbleColor: "#7a2230",
+    turnOrderPlayersOnly: true,
     damageCallouts: true,
     reactionCallouts: true,
     reactionColor: "#ffd700",

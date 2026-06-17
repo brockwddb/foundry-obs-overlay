@@ -5,7 +5,8 @@ const TAB_LABELS = {
   horizontalBanner: { label: "PCSTATS.TabBanner", hint: "PCSTATS.TabBannerHint" },
   verticalBanner: { label: "PCSTATS.TabVerticalCard", hint: "PCSTATS.TabVerticalCardHint" },
   partyRow: { label: "PCSTATS.TabParty", hint: "PCSTATS.TabPartyHint" },
-  partyColumn: { label: "PCSTATS.TabVertical", hint: "PCSTATS.TabVerticalHint" }
+  partyColumn: { label: "PCSTATS.TabVertical", hint: "PCSTATS.TabVerticalHint" },
+  turnOrder: { label: "PCSTATS.TabTurnOrder", hint: "PCSTATS.TabTurnOrderHint" }
 };
 
 const ANIM_LABELS = {
@@ -100,6 +101,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
       key,
       mode,
       isBanner: mode === "carousel",
+      isInitiative: mode === "initiative",
       label: TAB_LABELS[key].label,
       hint: TAB_LABELS[key].hint,
       cfg,
@@ -214,6 +216,7 @@ export class OverlayConfigApp extends HandlebarsApplicationMixin(ApplicationV2) 
     cfg.damageCallouts = !!data.damageCallouts;
     cfg.reactionCallouts = !!data.reactionCallouts;
     cfg.reactionColor = data.reactionColor || "#ffd700";
+    cfg.turnOrderPlayersOnly = !!data.turnOrderPlayersOnly;
 
     // Carousel/banner-only options.
     cfg.rotateInterval = Number(data.rotateInterval) || 0;

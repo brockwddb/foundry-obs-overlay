@@ -744,9 +744,10 @@ export function buildPreviewDocument(cfg, mode, column, state = null, start = 0)
     else inner = buildCardHTML(view, cfg) + deco.overlay;
     content = `<div id="pcs-card" class="${cardClass} ${deco.cls}${downCls}" style="${deco.varStyle}">${inner}</div>`;
   } else {
-    const limit = mode === "vertical" ? 2 : 3; // column is taller, show fewer
+    const col = mode === "vertical" || mode === "initiative"; // stacked column layouts
+    const limit = mode === "vertical" ? 2 : 3;
     const plates = previewViews(cfg, limit, start).map((v, i) => previewPlateHTML(v, cfg, i === 0 ? deco : null)).join("");
-    const dir = mode === "vertical" ? "pcs-prev-col" : "pcs-prev-row";
+    const dir = col ? "pcs-prev-col" : "pcs-prev-row";
     content = `<div class="${dir}">${plates}</div>`;
   }
 

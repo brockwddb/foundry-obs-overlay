@@ -151,8 +151,9 @@ export class OverlayController {
     if (this.mode === "carousel") {
       const cardClass = this.column ? "pcs-card-bg pcs-card-col" : "pcs-card-bg";
       body = `<div id="pcs-root"><div id="pcs-scale"><div id="pcs-card" class="${cardClass}"></div></div></div>`;
-    } else if (this.mode === "vertical") {
-      body = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="pcs-vertical"></div></div>`;
+    } else if (this.mode === "vertical" || this.mode === "initiative") {
+      const cls = this.mode === "initiative" ? "pcs-vertical pcs-initiative" : "pcs-vertical";
+      body = `<div id="pcs-root" class="pcs-vertical-root"><div id="pcs-party" class="${cls}"></div></div>`;
     } else {
       body = `<div id="pcs-root" class="pcs-party-root"><div id="pcs-party"></div></div>`;
     }
@@ -191,6 +192,7 @@ export class OverlayController {
   render() {
     if (!this.isOpen || this.animating) return;
     if (this.mode === "carousel") this._renderCarousel();
+    else if (this.mode === "initiative") this._renderInitiative();
     else this._renderParty();
   }
 
@@ -322,6 +324,47 @@ export class OverlayController {
       let style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(a.id, cfg)}`;
       if (entrance) style += `animation-delay:${(i * 0.08).toFixed(2)}s;`;
       return `<div class="${cls.join(" ")}" data-actor-id="${esc(a.id)}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
+    }).join("");
+    this._equalizePlates(party);
+    this._applyScale(party, cfg);
+  }
+
+  // Combatants in initiative order (optionally only player characters).
+  _combatViews(cfg) {
+    const combat = game.combat;
+    if (!combat) return [];
+    const out = [];
+    for (const t of combat.turns ?? []) {
+      const actor = t.actor;
+      if (!actor) continue;
+      if (cfg.turnOrderPlayersOnly && actor.type !== "character") continue;
+      out.push({ actor, active: combat.combatant?.id === t.id });
+    }
+    return out;
+  }
+
+  // Turn-order overlay: combatants stacked in initiative order, current marked.
+  _renderInitiative() {
+    const party = this.popup.document.getElementById("pcs-party");
+    if (!party) return;
+
+    const cfg = this.cfg();
+    const combat = game.combat;
+    const views = (combat && combat.started) ? this._combatViews(cfg) : [];
+    if (!views.length) {
+      party.innerHTML = `<div class="pcs-field" style="font-size:20px">${esc(game.i18n.localize("PCSTATS.NoCombat"))}</div>`;
+      this._applyScale(party, cfg);
+      return;
+    }
+
+    party.innerHTML = views.map(({ actor, active }) => {
+      const view = getActorViewData(actor);
+      const parts = buildFieldParts(view, cfg);
+      const cls = ["pcs-plate", "pcs-card-bg"];
+      if (cfg.showDownState && view.down) cls.push("pcs-down");
+      if (active && cfg.highlightActiveTurn !== false) cls.push("pcs-active-turn");
+      const style = `--pcs-turn:${esc(cfg.turnColor || "#ffd700")};${accentBorderCss(actor.id, cfg)}`;
+      return `<div class="${cls.join(" ")}" data-actor-id="${esc(actor.id)}" style="${style}">${downBadge(view, cfg)}${parts.join("")}</div>`;
     }).join("");
     this._equalizePlates(party);
     this._applyScale(party, cfg);
@@ -710,7 +753,8 @@ export class OverlayController {
       Hooks.on("createChatMessage", (message) => this.onCreateChatMessage(message))]);
 
     const onCombat = () => this.onUpdateCombat();
-    for (const hook of ["updateCombat", "combatTurn", "combatRound", "deleteCombat"]) {
+    for (const hook of ["updateCombat", "combatStart", "combatTurn", "combatRound", "deleteCombat",
+      "createCombatant", "updateCombatant", "deleteCombatant"]) {
       this._hookIds.push([hook, Hooks.on(hook, onCombat)]);
     }
 
